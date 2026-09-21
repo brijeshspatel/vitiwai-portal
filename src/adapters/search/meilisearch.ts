@@ -56,19 +56,38 @@ function toSearchError(error: unknown): SearchError {
 
 export class MeilisearchAdapter implements SearchPort {
   private readonly client: Meilisearch;
+  private readonly indexName: string;
 
-  constructor(env: Env) {
+  /**
+   * `indexName` exists so a test can work in an index of its own.
+   *
+   * Sharing one index makes a search assertion depend on whatever else has been
+   * indexed - which is how the contract suite passed locally and failed in CI,
+   * where the seed had already loaded twelve real plans that outranked the
+   * three the test had just added.
+   */
+  constructor(env: Env, options: { indexName?: string } = {}) {
     this.client = new Meilisearch({ host: env.MEILI_URL, apiKey: env.MEILI_MASTER_KEY });
+    this.indexName = options.indexName ?? PLANS_INDEX;
   }
 
   private index(): Index<PlanDocument> {
-    return this.client.index<PlanDocument>(PLANS_INDEX);
+    return this.client.index<PlanDocument>(this.indexName);
+  }
+
+  /** Removes the index. Used by tests that create one of their own. */
+  async dropIndex(): Promise<void> {
+    if (this.indexName === PLANS_INDEX) {
+      throw new Error('refusing to drop the shared plans index');
+    }
+    const task = await this.client.deleteIndex(this.indexName);
+    await this.client.tasks.waitForTask(task.taskUid, { timeout: 30_000 });
   }
 
   /** Creates the index if absent and applies the settings the queries rely on. */
   async ensureIndex(): Promise<Result<void, SearchError>> {
     try {
-      await this.client.createIndex(PLANS_INDEX, { primaryKey: 'id' }).catch(() => undefined);
+      await this.client.createIndex(this.indexName, { primaryKey: 'id' }).catch(() => undefined);
       const task = await this.index().updateSettings({
         searchableAttributes: ['name', 'description', 'category'],
         filterableAttributes: ['category', 'monthlyPriceMinor', 'downloadMbps'],

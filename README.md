@@ -106,13 +106,17 @@ Against a 7.755 GiB Docker ceiling on the development machine.
 | `npm run lint` | ESLint |
 | `npm run typecheck` | TypeScript, strict |
 | `npm test` | Unit and component tests |
-| `npm run test:contract` | Contract tests. **Needs the stack running** |
+| `npm run test:contract` | Contract tests. **Needs the stack running and seeded.** Reads `.env` itself; no manual `source` step |
 | `npm run preflight` | Port check: listener and bind |
 | `npm run stack:up` / `stack:down` / `stack:reset` | Start, stop, or destroy with volumes |
 | `npm run seed` | Load synthetic data. Idempotent |
 
 `npm test` deliberately excludes the contract tests. A suite that fails because Docker is down
 teaches nothing about the change under test.
+
+Every command reads `.env` for itself, falling back to `.env.example` per key. A value already set
+in your shell wins over the file, so you can override one setting without editing anything
+committed. There is no step where you have to export the variables by hand.
 
 ## How it is put together
 

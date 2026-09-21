@@ -15,29 +15,16 @@
  */
 
 import net from 'node:net';
-import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readEnvFile } from './lib/env-file.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-/** Reads .env, falling back to .env.example, so a fresh clone can run this. */
-function readEnvFile() {
-  for (const name of ['.env', '.env.example']) {
-    try {
-      const text = readFileSync(join(root, name), 'utf8');
-      const values = {};
-      for (const line of text.split(/\r?\n/)) {
-        const match = /^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/.exec(line);
-        if (match) values[match[1]] = match[2];
-      }
-      return { name, values };
-    } catch {
-      /* try the next one */
-    }
-  }
-  return { name: '(none)', values: {} };
-}
+// The reader lives in scripts/lib/env-file.mjs so the preflight, the Odoo
+// initialiser, the seed and the contract test setup all parse .env the same way.
+// It now merges .env.example and .env per key, where this script previously took
+// the first file whole - a partial .env resolves the rest instead of failing.
 
 /** True when something is already listening on the port. */
 function isOccupied(port) {
@@ -76,7 +63,8 @@ const PORT_KEYS = [
   'PORT_MAILPIT_WEB',
 ];
 
-const { name: sourceName, values: fileValues } = readEnvFile();
+const { sources, values: fileValues } = readEnvFile(root);
+const sourceName = sources.length > 0 ? sources.join(' then ') : '(no .env file)';
 const problems = [];
 const rows = [];
 
