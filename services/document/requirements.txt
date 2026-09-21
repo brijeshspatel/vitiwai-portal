@@ -1,0 +1,3 @@
+# Installed in the Dockerfile rather than from here; this file records the pin
+# for a reader who wants it without opening the Dockerfile.
+Pillow==12.2.0

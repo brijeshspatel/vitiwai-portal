@@ -11,14 +11,21 @@ import { createOdooClient } from '@/adapters/odoo/client';
 import { OdooCustomerAdapter } from '@/adapters/odoo/customer';
 import { OdooCaseAdapter } from '@/adapters/odoo/case';
 import { MeilisearchAdapter } from '@/adapters/search/meilisearch';
+import { HttpOcrAdapter } from '@/adapters/ocr/http';
+import { RulesIdentityAdapter } from '@/adapters/identity/rules';
 import type { CrmCasePort } from '@/ports/crm';
 import type { ErpCustomerPort } from '@/ports/erp';
 import type { SearchPort } from '@/ports/search';
+import type { DocumentOcrPort } from '@/ports/ocr';
+import type { IdentityDecisionPort } from '@/ports/identity';
 
 export interface Services {
   readonly customers: ErpCustomerPort;
   readonly cases: CrmCasePort;
   readonly search: SearchPort;
+  readonly ocr: DocumentOcrPort;
+  /** SIMULATED. See src/adapters/identity/rules.ts. */
+  readonly identity: IdentityDecisionPort;
 }
 
 let services: Services | undefined;
@@ -31,6 +38,8 @@ export function getServices(): Services {
       customers: new OdooCustomerAdapter(odoo),
       cases: new OdooCaseAdapter(odoo),
       search: new MeilisearchAdapter(env),
+      ocr: new HttpOcrAdapter(env.OCR_URL),
+      identity: new RulesIdentityAdapter(),
     };
   }
   return services;

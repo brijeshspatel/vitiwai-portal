@@ -9,6 +9,8 @@ const valid = {
   MEILI_URL: 'http://localhost:7700',
   MEILI_MASTER_KEY: 'a-local-development-key',
   GATEWAY_URL: 'http://localhost:8091',
+  OCR_URL: 'http://localhost:8090',
+  DOCGEN_URL: 'http://localhost:8092',
   PORTAL_DATABASE_URL: 'postgres://portal:portal@localhost:15432/portal',
   SMTP_HOST: 'localhost',
   SMTP_PORT: '1025',
@@ -18,6 +20,8 @@ const valid = {
   PORT_ODOO_DB: '15433',
   PORT_MEILI: '7700',
   PORT_GATEWAY: '8091',
+  PORT_OCR: '8090',
+  PORT_DOCGEN: '8092',
   PORT_MAILPIT_SMTP: '1025',
   PORT_MAILPIT_WEB: '8025',
 };

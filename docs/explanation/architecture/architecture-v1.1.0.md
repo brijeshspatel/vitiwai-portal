@@ -2,13 +2,13 @@
 doc_id: arch-vitiwai-portal
 title: "Architecture - Vitiwai self-service portal"
 type: arch
-version: 1.0.0
+version: 1.1.0
 status: active
 created: 2026-09-21
 updated: 2026-09-21
 supersedes: null
 superseded_by: null
-change_summary: "First version. Describes increment 1A as built: the container stack, the ports and adapters, and the composition boundary."
+change_summary: "Adds the ocr and docgen services, the two adapters implemented in increment 1B, and the portal schema."
 ---
 
 # Architecture - Vitiwai self-service portal
@@ -28,6 +28,9 @@ graph TB
     PG[("PostgreSQL 16<br/>portal data")]
     MAIL["Mailpit<br/>captures outbound email"]
     PAY["Mock gateway<br/>SIMULATED"]
+    OCR["ocr<br/>Tesseract"]
+    DOCGEN["docgen<br/>FIXTURE ONLY"]
+    SEED["seed and tests"]
 
     CUST -->|HTTP| WEB
     AGENT -->|Odoo web interface| ODOO
@@ -36,9 +39,13 @@ graph TB
     WEB -->|SQL| PG
     WEB -->|REST| PAY
     WEB -->|SMTP| MAIL
+    WEB -->|HTTP| OCR
+    SEED -->|HTTP| DOCGEN
 
     classDef simulated stroke-dasharray: 5 5
     class PAY simulated
+    classDef fixture fill:#eeeeee,stroke-dasharray: 3 3
+    class DOCGEN fixture
 ```
 
 The agent has no portal interface, and will not get one. Odoo already has a good one, and building
@@ -56,8 +63,8 @@ graph LR
         P2[CrmCasePort]
         P3[SearchPort]
         P4[PaymentGatewayPort]
-        P5["DocumentOcrPort<br/>declared, 1B"]
-        P6["IdentityDecisionPort<br/>declared, 1B"]
+        P5[DocumentOcrPort]
+        P6["IdentityDecisionPort<br/>SIMULATED"]
     end
 
     subgraph adapters["Adapters"]
@@ -65,15 +72,19 @@ graph LR
         A2[OdooCaseAdapter]
         A3[MeilisearchAdapter]
         A4["MockGatewayAdapter<br/>1C"]
+        A5[HttpOcrAdapter]
+        A6["RulesIdentityAdapter<br/>SIMULATED"]
     end
 
     PAGES --> P1 & P2 & P3 & P4
     PAGES --> COMP
-    COMP --> A1 & A2 & A3 & A4
+    COMP --> A1 & A2 & A3 & A4 & A5 & A6
     A1 --> P1
     A2 --> P2
     A3 --> P3
     A4 --> P4
+    A5 --> P5
+    A6 --> P6
 ```
 
 **The rule the code enforces:** nothing outside `src/composition.ts` may import from
@@ -96,11 +107,15 @@ above the call, at which point the page that knows how to explain it never runs.
 | Data | Owner |
 |---|---|
 | Customers, invoices, payments, leads, support cases | **Odoo.** The portal reads and writes through the ERP ports |
-| Portal sign-in, sessions, in-progress applications, audit events | **The portal's own PostgreSQL** |
+| Portal sign-in credentials and onboarding applications | **The portal's own PostgreSQL**, from increment 1B: `portal_user` and `onboarding_application` |
 | The plan catalogue, for search | **Meilisearch**, indexed from the seed |
 
 An in-progress account application deliberately does not live in Odoo. An abandoned application is
 not a customer, and writing one into the ERP pollutes it.
+
+**No table holds an uploaded identity document.** The extracted text and the decision are kept,
+because a reviewer needs them; the image is read and discarded inside the request. A contract test
+asserts no `bytea` column exists, so the absence is enforced rather than remembered.
 
 ## Money
 

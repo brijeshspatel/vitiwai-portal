@@ -7,8 +7,9 @@ The portal moves five call-centre jobs online: opening an account, seeing what y
 bill, comparing plans, and reporting a fault. Odoo stays the system of record; the portal never
 becomes a second source of truth for anything Odoo already owns.
 
-**Increment 1A is delivered.** That is the container stack, the application shell and the
-synthetic dataset. The five workflows arrive in increments 1B to 1E.
+**Increments 1A and 1B are delivered.** The container stack, the application shell, the
+synthetic dataset, and the first customer workflow: opening an account with an identity document.
+The remaining four workflows arrive in increments 1C to 1E.
 
 ## What is real, and what is simulated
 
@@ -22,14 +23,16 @@ Read this before drawing any conclusion from a demonstration.
 | Transactional email | **Real SMTP, captured locally.** Mailpit accepts the conversation; nothing leaves the machine |
 | Customer data | **Synthetic.** Generated, deterministic, and never anybody's real details |
 | **Payment authorisation and settlement** | **Simulated.** A mock gateway. No real money, no real card, no real provider |
-| **Identity verification decision** | **Simulated.** Rules over extracted text. No bureau is consulted. Arrives in 1B |
+| Reading an identity document | **Real.** Tesseract, in the `ocr` service |
+| **Identity verification decision** | **Simulated.** Rules over the extracted text. No bureau, no sanctions list, no credit file is consulted |
+| **Specimen identity documents** | **Fixture.** The `docgen` service renders them. It must never be deployed |
 | **Cloud hosting** | **Simulated in phase 1.** A local production build stands in for it |
 
 ## Requirements
 
 * Node.js 22 or later. Built and verified on **v26.2.0**.
 * Docker with Compose v2. Verified on **Docker 29.5.3, Compose v5.1.4**.
-* About **4.7 GB** of disk for the container images. `odoo:19.0` alone is 3.29 GB.
+* About **5.1 GB** of disk for the container images. `odoo:19.0` alone is 3.29 GB.
 * npm. `pnpm`, `yarn` and `bun` are not used.
 
 ## Getting it running
@@ -38,7 +41,7 @@ Read this before drawing any conclusion from a demonstration.
 npm install
 cp .env.example .env
 
-npm run stack:up     # port preflight, then docker compose up, then the Odoo database
+npm run stack:up     # preflight, compose up, the Odoo database, then the portal migrations
 npm run seed         # 12 plans, 200 customers, 600 invoices
 npm run dev          # http://localhost:3000
 ```
@@ -74,10 +77,40 @@ polls for readiness rather than sleeping, and is safe to re-run.
 | Meilisearch | 7700 | http://localhost:7700 |
 | Mailpit | 8025 | http://localhost:8025 |
 | Mock gateway | 8091 | http://localhost:8091/healthz |
+| OCR | 8090 | http://localhost:8090/healthz |
+| Document generator (fixture) | 8092 | http://localhost:8092/healthz |
 | Portal database | 15432 | - |
 | Odoo database | 15433 | - |
 
-All eight are configurable in `.env`.
+All ten are configurable in `.env`.
+
+## Opening an account
+
+Go to <http://localhost:3000/join>. You need a specimen document; the `docgen` service renders
+one. **Never upload a real identity document.**
+
+```bash
+curl -s -X POST http://localhost:8092/v1/render \
+  -H 'content-type: application/json' \
+  -d '{"surname":"NAIQAMA","givenNames":"ANA MEREANI","dateOfBirth":"14 MAR 1991","documentNumber":"FJ7481239","quality":"clean"}' \
+  -o specimen.png
+```
+
+Enter the name as `ANA MEREANI NAIQAMA`, the date of birth as 14 March 1991, and the document
+number as `FJ7481239`, then upload `specimen.png`.
+
+**Reaching the other two outcomes.** Extraction on a clean document is close to exact, so a
+referral or a decline has to be constructed:
+
+| To get | Do this |
+|---|---|
+| Approved | `clean` or `photo`, details matching the card |
+| Referred | Render `smudged`, or type a clearly different name such as `ANA MEREANI DELANA` |
+| Declined | Render `illegible`, or type a different document number |
+
+**Your uploaded image is never stored.** It is read inside the request and discarded. What is kept
+is the text that was read and the decision that followed; no table has a column that could hold an
+image.
 
 ## What it costs to run
 
@@ -93,7 +126,9 @@ Measured with `docker stats --no-stream` on 2026-09-21, all six services up:
 | Portal database | 34.1 MiB |
 | Mock gateway | 20.1 MiB |
 | Mailpit | 7.8 MiB |
-| **Total** | **253 MiB** |
+| OCR | about 25 MiB |
+| Document generator | about 25 MiB |
+| **Total** | **about 300 MiB** |
 
 Against a 7.755 GiB Docker ceiling on the development machine.
 
@@ -110,6 +145,7 @@ Against a 7.755 GiB Docker ceiling on the development machine.
 | `npm run preflight` | Port check: listener and bind |
 | `npm run stack:up` / `stack:down` / `stack:reset` | Start, stop, or destroy with volumes |
 | `npm run seed` | Load synthetic data. Idempotent |
+| `npm run migrate` | Apply the portal database migrations. Idempotent |
 
 `npm test` deliberately excludes the contract tests. A suite that fails because Docker is down
 teaches nothing about the change under test.
