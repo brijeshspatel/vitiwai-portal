@@ -145,7 +145,13 @@ export interface ClaimedIdentity {
 }
 
 export type ReferralReason = 'low_confidence' | 'name_mismatch' | 'dob_mismatch';
-export type DeclineReason = 'document_unreadable' | 'document_number_mismatch';
+/**
+ * `name_mismatch` was added in increment 1B. The parent specification's rule
+ * table defined referral for a name similarity between 0.60 and 0.85 and said
+ * nothing about below 0.60, which left a real case with no outcome. A name that
+ * different is a different person, so it declines.
+ */
+export type DeclineReason = 'document_unreadable' | 'document_number_mismatch' | 'name_mismatch';
 
 export type IdentityOutcome =
   | { readonly kind: 'approved'; readonly matchedFields: readonly string[] }
