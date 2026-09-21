@@ -10,6 +10,53 @@ together -- never one alone.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-22
+
+Increment 1B: opening an account with an identity document. Workflow W1, and
+the identity-document images deliverable 3 specified but increment 1A never
+built.
+
+### Added
+
+- `ocr` service: Tesseract behind a small HTTP wrapper, reading an image posted
+  to it and returning the card fields with a confidence figure.
+- `docgen` service: renders specimen identity documents at four qualities. It
+  is a **fixture** and is a separate service from `ocr` so that it cannot be
+  reached through the product service.
+- `HttpOcrAdapter` and `RulesIdentityAdapter`, implementing the two ports
+  declared but left unimplemented in increment 1A.
+- The portal database's first schema: `portal_user` and
+  `onboarding_application`, with an idempotent migration runner.
+- Password hashing with scrypt from `node:crypto`, per-user salt, constant-time
+  comparison.
+- Upload validation checking the declared type against the magic bytes.
+- The `/join` form and the three outcome screens.
+
+### Changed
+
+- `standards.validation` is unchanged; `npm run migrate` joins `stack:up`.
+- `DeclineReason` gains `name_mismatch`. The parent specification's rule table
+  defined referral for a name similarity between 0.60 and 0.85 and said nothing
+  below 0.60, which left a real case with no outcome.
+
+### Security
+
+- No uploaded image is written to disk, stored or logged. A contract test
+  asserts no `bytea` column exists on `onboarding_application`.
+- Every query in `src/db` is parameterised; there is no template literal in the
+  directory.
+- No plaintext password reaches a log, a column or Odoo.
+- Rate limiting on the onboarding route is **deferred to increment 1E** and
+  named here rather than omitted silently.
+
+### Known limitations
+
+- The identity decision is **simulated** and is labelled as such on every
+  outcome screen, in this file, in the README and in the adapter.
+- A referred applicant is told a general reason, not which field failed.
+- The sign-in screen arrives in increment 1C; this increment creates the
+  credential only.
+
 ## [0.2.0] - 2026-09-21
 
 Increment 1A of the Vitiwai Utilities self-service portal: the local container

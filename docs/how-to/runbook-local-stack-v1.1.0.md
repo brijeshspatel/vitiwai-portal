@@ -2,13 +2,13 @@
 doc_id: runbook-local-stack
 title: "Runbook - the local stack"
 type: runbook
-version: 1.0.0
+version: 1.1.0
 status: active
 created: 2026-09-21
 updated: 2026-09-21
 supersedes: null
 superseded_by: null
-change_summary: "First version. Covers the failures actually seen while building increment 1A."
+change_summary: "Adds the OCR and migration failures seen while building increment 1B."
 ---
 
 # Runbook - the local stack
@@ -95,6 +95,26 @@ curl http://localhost:7700/health     # expect {"status":"available"}
 npm run seed                          # re-indexes the 12 plans
 ```
 
+## OCR returns no words on a document you expect it to read
+
+Check which quality was rendered. `illegible` is *designed* to be unreadable and `smudged` is
+designed to lose every field. Both exist so the declined and referred paths can be reached.
+
+A `clean` render should return confidence near 0.93 with all four fields. When it does not, the
+`ocr` container is the thing to look at rather than the renderer.
+
+## A migration failed part way
+
+It cannot. Each migration runs in its own transaction and is rolled back on failure, so the
+database is never left half-migrated. Fix the SQL and run `npm run migrate` again.
+
+When the run cannot connect at all, the portal database is not up:
+
+```bash
+docker compose ps portal-db
+npm run migrate
+```
+
 ## Reclaiming disk
 
 The images take about 4.7 GB, and `odoo:19.0` is 3.29 GB of that.
@@ -102,4 +122,5 @@ The images take about 4.7 GB, and `odoo:19.0` is 3.29 GB of that.
 ```bash
 npm run stack:reset
 docker image rm odoo:19.0 getmeili/meilisearch:v1.54 axllent/mailpit:v1.31
+docker image rm vitiwai-ocr vitiwai-docgen
 ```

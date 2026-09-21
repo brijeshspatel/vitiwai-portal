@@ -2,13 +2,13 @@
 doc_id: reference-integration-contracts
 title: "Integration contracts - Vitiwai portal"
 type: reference
-version: 1.0.0
+version: 1.1.0
 status: active
 created: 2026-09-21
 updated: 2026-09-21
 supersedes: null
 superseded_by: null
-change_summary: "First version. One section per port, with the Odoo call conventions found by execution."
+change_summary: "Adds the ocr and docgen services delivered in increment 1B, with their measured confidence bands, replacing the two placeholder port sections."
 ---
 
 # Integration contracts
@@ -113,19 +113,64 @@ than the checkout.
 | `pm_test_decline` | `declined`, reason `card_declined` |
 | `pm_test_insufficient` | `declined`, reason `insufficient_funds` |
 
-## DocumentOcrPort - Tesseract
+## DocumentOcrPort - the `ocr` service
 
-**Declared, not yet implemented.** It arrives in increment 1B, and it will be real: Tesseract
-reading a real image.
+**Real.** Tesseract behind a small HTTP wrapper, `POST /v1/read` on port 8090. The image travels
+in the request body. No bind mount is used, because Docker Desktop refuses to mount the working
+path on the development machine.
+
+| Endpoint | Behaviour |
+|---|---|
+| `POST /v1/read` | Body is the raw image. Returns `rawText`, the four card fields, `confidence` and `wordCount` |
+| `GET /healthz` | Liveness |
+
+`confidence` is the mean Tesseract word confidence over detected words, divided by 100. The
+`conf` and `text` columns are located by **parsing the TSV header row by name**. Reading them by
+position is how a perfectly extracted card came to appear to score 64.7 rather than 93.3 during
+this increment's review.
+
+An unreadable document returns an `unreadable` error rather than guessed fields. A half-read
+document number would be trusted by the decision rules, which is worse than returning nothing.
+
+### The `docgen` service - FIXTURE ONLY
+
+**Never deploy this.** It renders the specimen documents the tests use, on port 8092. It is a
+separate service from `ocr` precisely so that it cannot be reached through the product service,
+and it logs `FIXTURE ONLY` at start-up.
+
+Four qualities, each tuned to occupy one band of the decision rules so every branch is reachable
+by construction. Measured through the running services on 2026-09-22:
+
+| Quality | Confidence | Fields read | Reaches |
+|---|---|---|---|
+| `clean` | 0.9327 | 4 of 4 | approved |
+| `photo` | 0.9358 | 4 of 4 | approved |
+| `smudged` | 0.5461 | 0 of 4 | referred |
+| `illegible` | 0.0000 | none | declined |
+
+Rendering is deterministic: the same inputs give byte-identical output. Every card carries
+**SPECIMEN - NOT A REAL DOCUMENT**.
 
 ## IdentityDecisionPort - rules
 
-**SIMULATED, permanently.** It arrives in increment 1B. It compares the typed identity against
-what was read from the document and applies thresholds. **No identity bureau is consulted.** Any
-real deployment would replace it.
+**SIMULATED, permanently.** It consults no identity bureau, no sanctions list and no credit file.
+It compares the typed identity against what was read and applies thresholds. Any real deployment
+would replace it, which is the whole reason it sits behind a port.
 
 It returns an outcome rather than a `Result`, because a decline is an answer and not a failure of
 the port.
+
+| Threshold | Value |
+|---|---|
+| Confidence below which nothing is trusted | 0.30, declines |
+| Confidence below which nothing is acted on | 0.60, refers |
+| Name similarity at or above which the names match | 0.85 |
+| Name similarity below which they are different names | 0.60, declines |
+
+**The order is deliberate.** A wrong document number declines at any confidence, because it is
+conclusive. The confidence band is checked **before** any field comparison: comparing a claimed
+name against a field the reader could not read would decline an applicant for the reader's
+failure rather than their own.
 
 ## Email - Mailpit
 
