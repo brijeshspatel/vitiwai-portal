@@ -1,0 +1,293 @@
+/*
+ * Design tokens.
+ *
+ * Colours are defined once on :root and redefined for dark mode. Every pairing
+ * used for text was checked against WCAG 2.2 contrast requirements: body text
+ * on surface, and muted text on surface, both exceed 4.5:1.
+ */
+
+:root {
+  --vw-surface: #ffffff;
+  --vw-surface-sunken: #f4f6f8;
+  --vw-surface-raised: #ffffff;
+  --vw-border: #d3dae0;
+  --vw-text: #10242e;
+  --vw-text-muted: #4a5c66;
+  --vw-accent: #00639b;
+  --vw-accent-text: #ffffff;
+  --vw-accent-hover: #004b76;
+  --vw-focus: #b3560b;
+  --vw-danger: #a3121a;
+  --vw-success: #14622f;
+
+  --vw-radius: 8px;
+  --vw-gap: 16px;
+  --vw-measure: 68ch;
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --vw-surface: #10181d;
+    --vw-surface-sunken: #0a1114;
+    --vw-surface-raised: #182229;
+    --vw-border: #32424c;
+    --vw-text: #eaf1f5;
+    --vw-text-muted: #adbcc6;
+    --vw-accent: #7cc2f0;
+    --vw-accent-text: #04202f;
+    --vw-accent-hover: #a5d6f5;
+    --vw-focus: #ffb454;
+    --vw-danger: #ff9a9f;
+    --vw-success: #7bd39a;
+
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --vw-surface: #10181d;
+  --vw-surface-sunken: #0a1114;
+  --vw-surface-raised: #182229;
+  --vw-border: #32424c;
+  --vw-text: #eaf1f5;
+  --vw-text-muted: #adbcc6;
+  --vw-accent: #7cc2f0;
+  --vw-accent-text: #04202f;
+  --vw-accent-hover: #a5d6f5;
+  --vw-focus: #ffb454;
+  --vw-danger: #ff9a9f;
+  --vw-success: #7bd39a;
+
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--vw-surface-sunken);
+  color: var(--vw-text);
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+/*
+ * Focus is never removed, only restyled. Removing it makes the keyboard paths
+ * in deliverable 8 impossible to complete.
+ */
+:focus-visible {
+  outline: 3px solid var(--vw-focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.vw-skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: var(--vw-accent);
+  color: var(--vw-accent-text);
+  padding: 12px 16px;
+  z-index: 100;
+}
+
+.vw-skip-link:focus {
+  left: 8px;
+  top: 8px;
+}
+
+.vw-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.vw-header {
+  background: var(--vw-surface-raised);
+  border-bottom: 1px solid var(--vw-border);
+}
+
+.vw-header__inner,
+.vw-main,
+.vw-footer__inner {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  /* 16px side gutter, so nothing touches the edge on a 320px screen. */
+  padding: var(--vw-gap);
+}
+
+.vw-header__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--vw-gap);
+  justify-content: space-between;
+}
+
+.vw-brand {
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--vw-text);
+  text-decoration: none;
+}
+
+.vw-brand span {
+  display: block;
+  font-weight: 400;
+  font-size: 0.78rem;
+  color: var(--vw-text-muted);
+}
+
+.vw-nav ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.vw-nav a {
+  display: inline-block;
+  padding: 8px 12px;
+  border-radius: var(--vw-radius);
+  color: var(--vw-text);
+  text-decoration: none;
+}
+
+.vw-nav a:hover {
+  background: var(--vw-surface-sunken);
+  text-decoration: underline;
+}
+
+.vw-nav a[aria-current='page'] {
+  background: var(--vw-accent);
+  color: var(--vw-accent-text);
+}
+
+.vw-main {
+  flex: 1;
+}
+
+.vw-card {
+  background: var(--vw-surface-raised);
+  border: 1px solid var(--vw-border);
+  border-radius: var(--vw-radius);
+  padding: var(--vw-gap);
+  margin-bottom: var(--vw-gap);
+}
+
+.vw-card h2 {
+  margin-top: 0;
+}
+
+.vw-prose {
+  max-width: var(--vw-measure);
+}
+
+.vw-muted {
+  color: var(--vw-text-muted);
+}
+
+.vw-grid {
+  display: grid;
+  gap: var(--vw-gap);
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+
+.vw-price {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.vw-tag {
+  display: inline-block;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--vw-border);
+  color: var(--vw-text-muted);
+}
+
+/*
+ * The simulation notice. It is deliberately loud: a reader must never mistake
+ * a simulated capability for a real one.
+ */
+.vw-simulated {
+  border: 2px dashed var(--vw-focus);
+  border-radius: var(--vw-radius);
+  padding: 12px var(--vw-gap);
+  margin-bottom: var(--vw-gap);
+  background: var(--vw-surface-raised);
+}
+
+.vw-simulated strong {
+  display: block;
+}
+
+.vw-footer {
+  background: var(--vw-surface-raised);
+  border-top: 1px solid var(--vw-border);
+  color: var(--vw-text-muted);
+  font-size: 0.9rem;
+}
+
+.vw-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.vw-table th,
+.vw-table td {
+  text-align: left;
+  padding: 8px;
+  border-bottom: 1px solid var(--vw-border);
+}
+
+.vw-error {
+  color: var(--vw-danger);
+}
+
+.vw-button {
+  display: inline-block;
+  background: var(--vw-accent);
+  color: var(--vw-accent-text);
+  border: 1px solid transparent;
+  border-radius: var(--vw-radius);
+  padding: 10px 16px;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.vw-button:hover {
+  background: var(--vw-accent-hover);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

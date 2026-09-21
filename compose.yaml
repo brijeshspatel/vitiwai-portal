@@ -1,0 +1,106 @@
+# Vitiwai portal - local stack.
+#
+# The OCR service is deliberately absent: its only caller is the onboarding
+# workflow, which lands in increment 1B. A container with no caller cannot be
+# shown to work, and a health check on an idle service is not evidence.
+#
+# Measured on 2026-09-21 with `docker stats --no-stream`: Odoo 115.6 MiB,
+# its database 135.4 MiB, Meilisearch 65.7 MiB, Mailpit 8.2 MiB.
+
+name: vitiwai
+
+services:
+  odoo-db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: odoo
+      POSTGRES_PASSWORD: odoo
+      POSTGRES_DB: postgres
+    ports:
+      - '${PORT_ODOO_DB:-15433}:5432'
+    volumes:
+      - odoo-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U odoo']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  portal-db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: portal
+      POSTGRES_PASSWORD: portal
+      POSTGRES_DB: portal
+    ports:
+      - '${PORT_PORTAL_DB:-15432}:5432'
+    volumes:
+      - portal-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U portal']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  odoo:
+    image: odoo:19.0
+    depends_on:
+      odoo-db:
+        condition: service_healthy
+    environment:
+      HOST: odoo-db
+      USER: odoo
+      PASSWORD: odoo
+    ports:
+      - '${PORT_ODOO:-8069}:8069'
+    volumes:
+      - odoo-data:/var/lib/odoo
+    healthcheck:
+      # Odoo's first run initialises 64 modules and took 118 s on 2026-09-21.
+      # start_period is what stops that being reported as unhealthy.
+      test:
+        ['CMD-SHELL', 'python3 -c "import urllib.request;urllib.request.urlopen(''http://localhost:8069/web/login'')"']
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 180s
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.54
+    environment:
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-vitiwai_local_dev_key_not_a_secret}
+      MEILI_ENV: development
+    ports:
+      - '${PORT_MEILI:-7700}:7700'
+    volumes:
+      - meili-data:/meili_data
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -fsS http://localhost:7700/health || exit 1']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  mailpit:
+    image: axllent/mailpit:v1.31
+    ports:
+      - '${PORT_MAILPIT_SMTP:-1025}:1025'
+      - '${PORT_MAILPIT_WEB:-8025}:8025'
+
+  mock-gateway:
+    build: ./services/mock-gateway
+    environment:
+      PORT: 8091
+    ports:
+      - '${PORT_GATEWAY:-8091}:8091'
+    healthcheck:
+      test:
+        ['CMD-SHELL', 'node -e "fetch(''http://localhost:8091/healthz'').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  odoo-db-data:
+  portal-db-data:
+  odoo-data:
+  meili-data:

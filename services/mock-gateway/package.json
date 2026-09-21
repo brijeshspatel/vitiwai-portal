@@ -1,0 +1,8 @@
+{
+  "name": "vitiwai-mock-gateway",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "A SIMULATED payment gateway. It never touches real money.",
+  "main": "server.mjs"
+}

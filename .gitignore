@@ -10,3 +10,18 @@ venv/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+coverage/
+playwright-report/
+test-results/
+next-env.d.ts
+
+# Local environment. The example is committed; real values are not.
+.env
+.env.*
+!.env.example
+*.tsbuildinfo

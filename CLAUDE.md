@@ -83,3 +83,33 @@ at every site that asks; this paragraph is for a session that has not run one.
 
 `python .claude/aia/conventions.py` and `python .claude/aia/diagrams.py` check
 all of this, and the pre-commit hook runs both.
+
+## Vitiwai portal - rules a fresh session would get wrong
+
+Added 2026-09-21 by run `20260921-001-greenfield-sample-project`. Each line is a
+rule, not history; the evidence is in that run's completion report.
+
+**Check a port by binding it, never by looking for a listener.** A port the
+operating system reserves has no listener, so a listener check reports it free
+and `docker compose up` then fails opaquely. Run `npm run preflight`, which does
+both checks. `55403-55502` is reserved on the development machine, so **55432 and
+55433 must not be used** - the databases are on 15432 and 15433.
+
+**Only `src/composition.ts` may import from `src/adapters/`.** Everything else
+depends on a port. ESLint fails the run otherwise. This is what keeps phase 2 a
+configuration change.
+
+**Odoo Community has no `helpdesk` module and no `new` task state.** A fault
+report is a `project.task`, a plan change is a `crm.lead`, and `project.task`
+starts at `01_in_progress`. The four JSON-RPC call conventions every adapter must
+honour are in `docs/reference/`.
+
+**Money is an integer count of minor units.** Floating-point currency is a defect,
+not a style choice. Convert at the Odoo boundary with `fromOdooFloat`.
+
+**Verify a package's export shape before importing it.** This increment had two
+wrong guesses: `eslint-config-next` exports an array rather than a factory, and
+the Meilisearch class is `Meilisearch`, not `MeiliSearch`.
+
+**Label every simulated capability in three places** - on screen, in the README,
+and in a comment on the adapter.
