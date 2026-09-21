@@ -40,6 +40,8 @@ const schema = z.object({
   MEILI_URL: z.string().url(),
   MEILI_MASTER_KEY: z.string().min(1),
   GATEWAY_URL: z.string().url(),
+  OCR_URL: z.string().url(),
+  DOCGEN_URL: z.string().url(),
   PORTAL_DATABASE_URL: z.string().min(1),
   SMTP_HOST: z.string().min(1),
   SMTP_PORT: port('SMTP_PORT'),
@@ -49,6 +51,8 @@ const schema = z.object({
   PORT_ODOO_DB: port('PORT_ODOO_DB'),
   PORT_MEILI: port('PORT_MEILI'),
   PORT_GATEWAY: port('PORT_GATEWAY'),
+  PORT_OCR: port('PORT_OCR'),
+  PORT_DOCGEN: port('PORT_DOCGEN'),
   PORT_MAILPIT_SMTP: port('PORT_MAILPIT_SMTP'),
   PORT_MAILPIT_WEB: port('PORT_MAILPIT_WEB'),
 });
@@ -70,6 +74,8 @@ export const PORT_KEYS = [
   'PORT_ODOO_DB',
   'PORT_MEILI',
   'PORT_GATEWAY',
+  'PORT_OCR',
+  'PORT_DOCGEN',
   'PORT_MAILPIT_SMTP',
   'PORT_MAILPIT_WEB',
 ] as const satisfies readonly (keyof Env)[];

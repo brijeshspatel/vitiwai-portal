@@ -1,8 +1,7 @@
 # Vitiwai portal - local stack.
 #
-# The OCR service is deliberately absent: its only caller is the onboarding
-# workflow, which lands in increment 1B. A container with no caller cannot be
-# shown to work, and a health check on an idle service is not evidence.
+# The OCR service arrived in increment 1B, with the onboarding workflow that
+# calls it. `docgen` beside it is a FIXTURE and must never be deployed.
 #
 # Measured on 2026-09-21 with `docker stats --no-stream`: Odoo 115.6 MiB,
 # its database 135.4 MiB, Meilisearch 65.7 MiB, Mailpit 8.2 MiB.
@@ -85,6 +84,36 @@ services:
     ports:
       - '${PORT_MAILPIT_SMTP:-1025}:1025'
       - '${PORT_MAILPIT_WEB:-8025}:8025'
+
+  ocr:
+    build: ./services/document
+    environment:
+      SERVICE_MODE: ocr
+      PORT: 8090
+    ports:
+      - '${PORT_OCR:-8090}:8090'
+    healthcheck:
+      test: ['CMD-SHELL', 'python3 -c "import urllib.request;urllib.request.urlopen(''http://localhost:8090/healthz'')"']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # FIXTURE ONLY. Renders synthetic identity documents for the seed and the
+  # tests. It is a separate service from `ocr` so that it cannot be reached
+  # through the product service, and so that it is obvious it must never be
+  # deployed.
+  docgen:
+    build: ./services/document
+    environment:
+      SERVICE_MODE: docgen
+      PORT: 8092
+    ports:
+      - '${PORT_DOCGEN:-8092}:8092'
+    healthcheck:
+      test: ['CMD-SHELL', 'python3 -c "import urllib.request;urllib.request.urlopen(''http://localhost:8092/healthz'')"']
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
   mock-gateway:
     build: ./services/mock-gateway
