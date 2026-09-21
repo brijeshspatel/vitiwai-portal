@@ -29,6 +29,9 @@ export default defineConfig({
           name: 'contract',
           environment: 'node',
           include: ['tests/contract/**/*.test.ts'],
+          // Only this project loads .env. The unit and component projects need
+          // no stack and must not start requiring one.
+          setupFiles: ['tests/contract/setup.ts'],
           testTimeout: 60_000,
           hookTimeout: 120_000,
         },
