@@ -19,9 +19,10 @@
     "test:integration": "vitest run --project contract",
     "preflight": "node scripts/check-ports.mjs",
     "seed": "node scripts/seed.mjs",
-    "stack:up": "npm run preflight && docker compose up -d",
+    "stack:up": "npm run preflight && docker compose up -d && npm run init:odoo",
     "stack:down": "docker compose down",
-    "stack:reset": "docker compose down -v"
+    "stack:reset": "docker compose down -v",
+    "init:odoo": "node scripts/init-odoo.mjs"
   },
   "dependencies": {
     "meilisearch": "0.62.0",

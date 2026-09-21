@@ -77,7 +77,13 @@ export interface Page<T> {
   readonly total: number;
 }
 
-export type CaseStatus = 'new' | 'in_progress' | 'resolved' | 'cancelled';
+/**
+ * The portal's case vocabulary, mapped one-to-one onto the six values Odoo 19
+ * declares for `project.task.state`. There is deliberately no `new`: Odoo has
+ * no such state, and a just-opened task is `01_in_progress`. An enum member
+ * reality never produces is dead code that misleads whoever reads it next.
+ */
+export type CaseStatus = 'waiting' | 'in_progress' | 'resolved' | 'cancelled';
 
 export interface SupportCase {
   readonly id: CaseId;
