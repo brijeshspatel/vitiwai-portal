@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { parseEnv } from '@/config/env';
 import { MeilisearchAdapter } from '@/adapters/search/meilisearch';
 import { isOk } from '@/domain/result';
@@ -6,7 +6,12 @@ import { toMinorUnits } from '@/domain/money';
 import type { Plan } from '@/domain/types';
 
 const env = parseEnv({ ...process.env } as Record<string, string | undefined>);
-const search = new MeilisearchAdapter(env);
+
+// An index of this run's own. Sharing the real `plans` index makes every
+// assertion below depend on whatever the seed happened to load, which is why
+// this suite passed locally and failed in CI on 2026-09-21.
+const INDEX = `plans-contract-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+const search = new MeilisearchAdapter(env, { indexName: INDEX });
 
 const PLANS: Plan[] = [
   {
@@ -47,6 +52,11 @@ beforeAll(async () => {
     );
   }
 }, 120_000);
+
+afterAll(async () => {
+  // Leaving a per-run index behind would accumulate one per CI run.
+  await search.dropIndex().catch(() => undefined);
+}, 60_000);
 
 describe('plan discovery', () => {
   it('returns every plan for an empty query', async () => {
