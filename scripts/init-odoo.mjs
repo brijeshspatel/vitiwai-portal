@@ -12,28 +12,14 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readEnvFile } from './lib/env-file.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-function env() {
-  const values = {};
-  for (const name of ['.env.example', '.env']) {
-    try {
-      for (const line of readFileSync(join(root, name), 'utf8').split(/\r?\n/)) {
-        const m = /^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/.exec(line);
-        if (m) values[m[1]] = m[2];
-      }
-    } catch {
-      /* optional */
-    }
-  }
-  return { ...values, ...process.env };
-}
-
-const cfg = env();
+// Shared reader; the real environment still wins, as it did before.
+const cfg = { ...readEnvFile(root).values, ...process.env };
 const ODOO_URL = cfg.ODOO_URL ?? 'http://localhost:8069';
 const ODOO_DB = cfg.ODOO_DB ?? 'vitiwai';
 const MODULES = 'base,crm,account,project';
