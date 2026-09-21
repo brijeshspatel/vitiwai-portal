@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -29,15 +30,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
           <header className="vw-header">
             <div className="vw-header__inner">
-              <a className="vw-brand" href="/">
+              <Link className="vw-brand" href="/">
                 Vitiwai Utilities
                 <span>Water and broadband, Fiji</span>
-              </a>
+              </Link>
               <nav className="vw-nav" aria-label="Main">
                 <ul>
                   {NAV.map((item) => (
                     <li key={item.href}>
-                      <a href={item.href}>{item.label}</a>
+                      <Link href={item.href}>{item.label}</Link>
                     </li>
                   ))}
                 </ul>

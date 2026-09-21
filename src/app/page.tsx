@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { SimulatedNotice } from '@/components/SimulatedNotice';
 
 export default function HomePage() {
@@ -30,9 +31,9 @@ export default function HomePage() {
             Twelve water, broadband and bundle plans, searchable and filterable.
           </p>
           <p>
-            <a className="vw-button" href="/plans">
+            <Link className="vw-button" href="/plans">
               Browse plans
-            </a>
+            </Link>
           </p>
         </section>
       </div>
