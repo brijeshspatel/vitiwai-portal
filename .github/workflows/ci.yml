@@ -38,6 +38,8 @@ jobs:
         run: docker compose up -d
       - name: Initialise Odoo
         run: npm run init:odoo
+      - name: Apply portal migrations
+        run: npm run migrate
       - name: Seed synthetic data
         run: npm run seed
         env:
