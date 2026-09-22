@@ -5,10 +5,31 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-`VERSION` is the authoritative version source. It and this file move
-together -- never one alone.
+`VERSION` is the authoritative version source. It, this file, `package.json`
+and `package-lock.json` move together -- never one alone. `tests/unit/version.test.ts`
+enforces it, because they drifted for two releases while nobody was checking
+all four.
 
 ## [Unreleased]
+
+### Fixed
+
+- **`npm run portal:free` did not free the port, and said it had.** It bound
+  `0.0.0.0` to decide whether the port was in use, while `next start` binds the
+  IPv6 wildcard `::` -- a dual-stack socket that serves `127.0.0.1` too and
+  leaves `0.0.0.0` bindable. The script printed
+  `PASS - port 3000 is already free` while the server answered 200. This is the
+  stale-server trap the script was written to prevent.
+- **The same script could never stop anything on this machine.** It invoked
+  `powershell.exe`, which is absent from PATH here, and discarded the resulting
+  `ENOENT` in an empty `catch`. It now tries `pwsh.exe` first, names each process
+  it stops, and fails loudly when no PowerShell is found. The false pass above
+  was hiding this second defect entirely.
+- Both port checks now live in `scripts/lib/port.mjs` and ask both address
+  families, so `npm run preflight` and `npm run portal:free` answer the same
+  question the same way.
+- `package.json` and `package-lock.json` said 0.2.0 while `VERSION` and this
+  file said 0.4.0, having been missed at the 0.3.0 and 0.4.0 releases.
 
 ## [0.4.0] - 2026-09-22
 
