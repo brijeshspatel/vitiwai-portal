@@ -2,9 +2,14 @@ import { NextResponse, type NextRequest } from 'next/server';
 // The names only. Importing from '@/security/csrf' would drag node:crypto
 // into the Edge runtime and 500 every request.
 import { CSRF_COOKIE, CSRF_HEADER } from '@/security/csrf-names';
+import { contentSecurityPolicy } from '@/security/headers';
 
 /**
  * Two jobs, both of which have to happen before a page renders.
+ *
+ * **The security headers**, including a Content-Security-Policy carrying a
+ * per-request nonce. Next stamps its own inline scripts with the nonce it finds
+ * on the request, which is what lets the policy omit `unsafe-inline`.
  *
  * **The CSRF token.** Minted here where one is absent, forwarded to the render
  * on a request header so a server component can write it into a form, and set
@@ -33,7 +38,17 @@ export function middleware(request: NextRequest): NextResponse {
   const headers = new Headers(request.headers);
   headers.set(CSRF_HEADER, token);
 
+  // A second random value, independent of the CSRF token: reusing one value for
+  // both would leak the token to anything that can read the policy header.
+  const nonce = Buffer.from(crypto.getRandomValues(new Uint8Array(16))).toString('base64');
+  headers.set('x-nonce', nonce);
+
   const response = NextResponse.next({ request: { headers } });
+
+  // Only the policy is set here, because only the policy varies per request.
+  // The rest are in next.config.mjs, which also covers static assets - this
+  // matcher deliberately does not, to keep middleware off the asset path.
+  response.headers.set('Content-Security-Policy', contentSecurityPolicy(nonce));
 
   if (!existing) {
     response.cookies.set(CSRF_COOKIE, token, {
