@@ -27,7 +27,8 @@
     "migrate": "node scripts/migrate.mjs",
     "demo:credential": "node scripts/demo-credential.mjs",
     "portal:free": "node scripts/restart-portal.mjs",
-    "screenshots": "node scripts/screenshots.mjs"
+    "screenshots": "node scripts/screenshots.mjs",
+    "scan:secrets": "node scripts/scan-secrets.mjs"
   },
   "dependencies": {
     "meilisearch": "0.62.0",
