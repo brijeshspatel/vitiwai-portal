@@ -23,6 +23,9 @@
   --vw-radius: 8px;
   --vw-gap: 16px;
   --vw-measure: 68ch;
+  /* A field wide enough for an email address and no wider; --vw-measure is a
+     reading width and makes a single-line input look like a mistake. */
+  --vw-field: 26rem;
 
   color-scheme: light;
 }
@@ -85,6 +88,30 @@ body {
     sans-serif;
   font-size: 16px;
   line-height: 1.55;
+}
+
+/*
+ * Links.
+ *
+ * Until increment 1D nothing styled `a` outside `.vw-nav`, so every link in page
+ * content used the browser's own colours - and turned `rgb(158, 158, 255)` once
+ * visited, a purple that appears nowhere in these tokens.
+ *
+ * `:visited` is set to the same colour as `:link` on purpose. A distinct visited
+ * colour inside an authenticated dashboard tells anyone looking at the screen
+ * which bills the customer has already opened, and buys nothing here.
+ */
+a {
+  color: var(--vw-accent);
+  text-decoration: underline;
+}
+
+a:visited {
+  color: var(--vw-accent);
+}
+
+a:hover {
+  color: var(--vw-accent-hover);
 }
 
 /*
@@ -178,8 +205,24 @@ body {
   display: none;
 }
 
+/*
+ * Two rules are needed to force a closed `details` open, because engines hide
+ * its contents in two different ways.
+ *
+ * Older engines apply `display: none` to the children, which the first rule
+ * overrides. Chrome 131 and later instead wrap the contents in
+ * `::details-content` and set `content-visibility: hidden`, which a `display`
+ * override cannot reach: the list keeps its box - measured at 271px with four
+ * links present - and simply never paints. That is what made the navigation
+ * disappear from the header entirely the first time this was built.
+ */
 .vw-nav__disclosure > .vw-nav__list {
   display: flex;
+}
+
+.vw-nav__disclosure::details-content {
+  content-visibility: visible;
+  block-size: auto;
 }
 
 /* The sign-out control is a form button, so it is styled to match the links. */
@@ -382,35 +425,90 @@ dl dd {
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
 }
 
-.vw-filters input,
-.vw-filters select {
+/*
+ * Every form control, not just the ones on the plans page.
+ *
+ * This rule was `.vw-filters input, .vw-filters select` until increment 1D, so
+ * the plans filter was styled and every other field in the product was a browser
+ * default: Arial at 13.33px, `rgb(59, 59, 59)`, a 1.6px inset border, square
+ * corners, and 21px tall. The account-opening form - the first thing a new
+ * customer fills in - was a column of grey boxes next to a themed 46px button.
+ *
+ * Two of the values are load-bearing rather than decorative:
+ *
+ *   min-height: 44px   WCAG 2.2 AA 2.5.8 requires a 24px target. 44px is the
+ *                      comfortable size for a finger and costs nothing here.
+ *   font-size: 16px    Below 16px, iOS Safari zooms the whole page when the
+ *                      field takes focus, and does not zoom back out.
+ */
+input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='submit']):not([type='button']),
+select,
+textarea {
+  display: block;
   width: 100%;
-  padding: 8px;
-  font: inherit;
+  max-width: var(--vw-field);
+  min-height: 44px;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.4;
   color: var(--vw-text);
   background: var(--vw-surface);
   border: 1px solid var(--vw-border);
   border-radius: var(--vw-radius);
+}
+
+textarea {
+  min-height: 120px;
+  max-width: var(--vw-measure);
+  resize: vertical;
+}
+
+/*
+ * Checkboxes and radios keep the native control - `accent-color` themes it
+ * without replacing it, so it stays keyboard-operable and announced correctly
+ * for free. They are excluded from the rule above because a 44px min-height
+ * would produce a 44px circle.
+ */
+input[type='checkbox'],
+input[type='radio'] {
+  width: 24px;
+  height: 24px;
+  margin: 0 8px 0 0;
+  accent-color: var(--vw-accent);
+  vertical-align: middle;
+}
+
+/* The label is part of the target, so the whole row is clickable. */
+.vw-choice {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+input[type='file'] {
+  font-family: inherit;
+  font-size: 16px;
+  color: var(--vw-text);
+  min-height: 44px;
 }
 
 fieldset {
   border: 1px solid var(--vw-border);
   border-radius: var(--vw-radius);
   margin: var(--vw-gap) 0;
+  padding: 12px var(--vw-gap);
 }
 
 legend {
   padding: 0 6px;
   color: var(--vw-text-muted);
+  font-size: 0.9rem;
 }
 
-textarea {
-  width: 100%;
-  max-width: var(--vw-measure);
-  padding: 8px;
-  font: inherit;
-  color: var(--vw-text);
-  background: var(--vw-surface);
-  border: 1px solid var(--vw-border);
-  border-radius: var(--vw-radius);
+label {
+  display: block;
+  margin-bottom: 4px;
 }
