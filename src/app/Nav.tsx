@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { currentSession } from '@/auth/require';
+import { CsrfField } from '@/security/form';
 
 /**
  * The primary navigation.
@@ -54,6 +55,7 @@ export default async function Nav() {
                 customer out without them asking.
               */}
               <form method="post" action="/signout">
+        <CsrfField />
                 <button className="vw-nav__signout" type="submit">
                   Sign out
                 </button>

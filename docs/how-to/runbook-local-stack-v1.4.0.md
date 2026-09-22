@@ -2,13 +2,13 @@
 doc_id: runbook-local-stack
 title: "Runbook - the local stack"
 type: runbook
-version: 1.3.0
+version: 1.4.0
 status: active
 created: 2026-09-21
 updated: 2026-09-22
 supersedes: null
 superseded_by: null
-change_summary: "Corrects the stale-server remedy: portal:free reported success without freeing the port, and could not stop a process on this machine at all."
+change_summary: "Adds the security controls increment 1E introduced: the policy, the rate-limit budgets, the audit trail and the secret scan, with what to do when each one refuses a request."
 ---
 
 # Runbook - the local stack
@@ -174,3 +174,67 @@ npm run stack:reset
 docker image rm odoo:19.0 getmeili/meilisearch:v1.54 axllent/mailpit:v1.31
 docker image rm vitiwai-ocr vitiwai-docgen
 ```
+
+## A request was refused and the customer did nothing wrong
+
+Three controls added in increment 1E refuse requests. Each refuses differently,
+and the status code says which.
+
+**403, body "Request rejected."** The CSRF token did not match. A form opened
+before the browser's cookies were cleared will do this, as will a page left open
+long enough for the cookie to be replaced. Reloading the form fixes it. If it
+happens to everyone at once, check that middleware is running: without it no
+token is minted and every mutation is refused.
+
+**429, with a `retry-after`.** A rate limit. The budgets are five sign-ins per
+email and twenty per client address in five minutes, and ten uploads per address
+in ten minutes. Behind a shared address - an office, a campus, mobile network
+translation - twenty can be reached by ordinary use.
+
+```bash
+docker compose exec -T portal-db psql -U portal -d portal   -c "SELECT bucket, key, count, window_start FROM rate_limit
+        ORDER BY window_start DESC LIMIT 20;"
+```
+
+Clearing a row forgives that caller immediately. Windows are fixed, so waiting
+for the next one works too.
+
+**303 back to the form with `error=`.** Validation. The message names the field.
+
+## The Content-Security-Policy
+
+Every route sends one, built in `src/security/headers.ts` and stamped with a
+per-request nonce by middleware. If a page renders unstyled or a script does not
+run, open the browser console: a violation names the directive that blocked it.
+
+**`style-src` still allows `unsafe-inline`.** Next inlines critical CSS as a
+`<style>` element with no nonce, so removing it leaves every page unstyled. That
+is a known limitation, not an oversight.
+
+Anything middleware imports must be safe on the **Edge runtime**. Importing a
+module that reaches `node:crypto` builds cleanly and then fails every request
+with `Native module not found: node:crypto`. The cookie and header names live in
+`src/security/csrf-names.ts`, which imports nothing, for that reason.
+
+## Checking the history for secrets
+
+```bash
+npm run scan:secrets
+```
+
+Reads every blob ever committed, not the working tree, because a secret removed
+in a later commit is still published by the history. CI runs it with the full
+history fetched. A known-good match is allowed by path and by rule in the
+script, never by loosening the pattern.
+
+## Reading the audit trail
+
+```bash
+docker compose exec -T portal-db psql -U portal -d portal   -c "SELECT occurred_at, action, actor_user, subject_type, subject_id, detail
+        FROM audit_event ORDER BY id DESC LIMIT 20;"
+```
+
+`detail` never holds a password, a token, a session identifier or a document.
+A write that fails is reported on stderr and does not fail the request it
+describes - a completed payment is not undone because a log line failed.
+

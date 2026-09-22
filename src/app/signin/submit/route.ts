@@ -6,6 +6,10 @@ import { findPortalUserByEmail } from '@/db/users';
 import { verifyPassword } from '@/domain/password';
 import { createSession, SESSION_COOKIE, SESSION_HOURS } from '@/auth/session';
 import { SIGNIN_FAILED } from '@/auth/messages';
+import { rejectIfForged } from '@/security/require-csrf';
+import { firstProblem, signInSchema } from '@/security/schemas';
+import { clientAddress, consume, SIGNIN_BY_ADDRESS, SIGNIN_BY_EMAIL } from '@/security/ratelimit';
+import { recordEvent } from '@/audit/record';
 
 /**
  * A plain form post, so signing in works without JavaScript.
@@ -15,9 +19,43 @@ import { SIGNIN_FAILED } from '@/auth/messages';
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const form = await request.formData();
-  const email = String(form.get('email') ?? '').trim();
-  const password = String(form.get('password') ?? '');
-  const next = String(form.get('next') ?? '/account');
+  // Reject a forged request before anything is read from it.
+  const forged = await rejectIfForged(form);
+  if (forged) return forged;
+
+  const candidate = signInSchema.safeParse({
+    email: form.get('email'),
+    password: form.get('password'),
+    next: form.get('next') ?? undefined,
+  });
+  if (!candidate.success) {
+    // A malformed sign-in gets the same message as a wrong one. Telling the
+    // sender which field was malformed would distinguish a real address from
+    // a missing one, which is the enumeration oracle SIGNIN_FAILED avoids.
+    return NextResponse.redirect(
+      new URL(`/signin?error=${encodeURIComponent(SIGNIN_FAILED)}`, request.nextUrl.origin),
+      303,
+    );
+  }
+  const { email, password } = candidate.data;
+
+  // Two budgets: per email slows guessing at one account, per address slows
+  // spraying across many. Both are counted before the password is checked, so
+  // the cost of an attempt does not depend on whether the account exists.
+  const pool = getPool(loadEnv());
+  const byEmail = await consume(pool, SIGNIN_BY_EMAIL, email.toLowerCase());
+  const byAddress = await consume(pool, SIGNIN_BY_ADDRESS, clientAddress(request));
+  if (!byEmail.allowed || !byAddress.allowed) {
+    const resetsAt = byEmail.allowed ? byAddress.resetsAt : byEmail.resetsAt;
+    return new NextResponse('Too many attempts. Try again shortly.', {
+      status: 429,
+      headers: {
+        'content-type': 'text/plain; charset=utf-8',
+        'retry-after': String(Math.max(1, Math.ceil((resetsAt.getTime() - Date.now()) / 1000))),
+      },
+    });
+  }
+  const next = candidate.data.next ?? '/account';
 
   const origin = request.nextUrl.origin;
   const fail = () =>
@@ -28,7 +66,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   if (!email || !password) return fail();
 
-  const pool = getPool(loadEnv());
   const user = await findPortalUserByEmail(pool, email);
 
   // The hash is verified even when no user was found, so both paths take
@@ -36,9 +73,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const stored = user?.passwordHash ?? 'scrypt$16384$8$1$0000$0000';
   const matches = await verifyPassword(password, stored);
 
-  if (!user || !matches) return fail();
+  if (!user || !matches) {
+    await recordEvent(pool, {
+      action: 'signin.failed',
+      subjectType: 'session',
+      detail: { email, reason: user ? 'wrong-password' : 'no-such-account' },
+    });
+    return fail();
+  }
 
   const id = await createSession(pool, user.id);
+  await recordEvent(pool, {
+    action: 'signin.succeeded',
+    actorUser: user.id,
+    subjectType: 'session',
+    detail: { email },
+  });
 
   // Only a path on this site, so `next` cannot be turned into an open redirect.
   const destination = next.startsWith('/') && !next.startsWith('//') ? next : '/account';

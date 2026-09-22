@@ -8,6 +8,7 @@
  */
 
 import { JSDOM } from 'jsdom';
+import pg from 'pg';
 
 const PORT = process.env.PORT_PORTAL ?? '3000';
 export const BASE = `http://localhost:${PORT}`;
@@ -40,10 +41,34 @@ export async function signIn(
   email = 'adi.baleiwai.19@example.test',
   password = 'demo-passphrase',
 ): Promise<string> {
+  // The suite is not a customer. Every contract file signs in as the same
+  // seeded account, which to the limiter looks exactly like credential stuffing
+  // against one email - and it refuses the sixth attempt in five minutes,
+  // correctly. Clearing this account's own buckets is the harness admitting it
+  // is a harness. The limit itself is proved by tests/contract/ratelimit.test.ts,
+  // which drives a budget of its own to exhaustion.
+  await clearSignInBudget(email);
+
+  // Sign-in is a mutation, so it carries a CSRF token like any other. The page
+  // is fetched first to obtain the pair: the token it renders, and the cookie
+  // set alongside it. Before increment 1E this helper posted without one, and
+  // adding the guard made every signing-in contract test fail at once - which
+  // is the guard working, not a defect.
+  const page = await fetch(`${BASE}/signin`);
+  const html = await page.text();
+  const token = /name="_csrf"\s+value="([^"]+)"/.exec(html)?.[1] ?? '';
+  const csrfCookie = (page.headers.getSetCookie?.() ?? [])
+    .filter((c) => c.startsWith('vitiwai_csrf='))
+    .map((c) => c.split(';')[0])
+    .join('; ');
+
   const res = await fetch(`${BASE}/signin/submit`, {
     method: 'POST',
-    headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ email, password }),
+    headers: {
+      'content-type': 'application/x-www-form-urlencoded',
+      ...(csrfCookie ? { cookie: csrfCookie } : {}),
+    },
+    body: new URLSearchParams({ email, password, _csrf: token }),
     redirect: 'manual',
   });
   const raw = res.headers.getSetCookie?.() ?? [];
@@ -156,4 +181,28 @@ export async function allStylesheets(html: string): Promise<string> {
 /** The stylesheet of the running application, as text. */
 export async function stylesheetText(): Promise<string> {
   return allStylesheets(await getHtml('/'));
+}
+
+/**
+ * Forgets this email's sign-in attempts, and the harness's own address.
+ *
+ * Test-only. Nothing in `src/` calls it, and the limiter is never bypassed in
+ * the application - only the counter this harness itself filled is cleared.
+ */
+export async function clearSignInBudget(email: string): Promise<void> {
+  const url = process.env.PORTAL_DATABASE_URL;
+  if (!url) return;
+  const pool = new pg.Pool({ connectionString: url });
+  try {
+    await pool.query(
+      `DELETE FROM rate_limit
+        WHERE (bucket = 'signin-email' AND key = $1)
+           OR bucket = 'signin-address'`,
+      [email.toLowerCase()],
+    );
+  } catch {
+    // The table does not exist before migration 003. Nothing to clear.
+  } finally {
+    await pool.end();
+  }
 }

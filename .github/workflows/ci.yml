@@ -23,6 +23,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '26'
@@ -34,6 +36,10 @@ jobs:
       - run: npm run build
       - name: Dependency audit
         run: npm audit --audit-level=high
+      - name: Secret scan over the full history
+        # Needs every commit, not the shallow clone actions/checkout takes by
+        # default - a secret removed later is still published by the history.
+        run: npm run scan:secrets
 
   contract:
     name: Contract tests against the stack

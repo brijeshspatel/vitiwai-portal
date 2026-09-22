@@ -3,6 +3,7 @@ import { getServices } from '@/composition';
 import { isOk } from '@/domain/result';
 import type { SupportCase } from '@/domain/types';
 import { formatDate } from '@/domain/dates';
+import { CsrfField } from '@/security/form';
 
 export const metadata = { title: 'Support' };
 export const dynamic = 'force-dynamic';
@@ -45,6 +46,7 @@ export default async function SupportPage({
       )}
 
       <form className="vw-card" method="post" action="/account/support/submit">
+        <CsrfField />
         <h1>Report a fault</h1>
         <p className="vw-muted vw-prose">
           Tell us what is wrong and we will raise it with our operations team.

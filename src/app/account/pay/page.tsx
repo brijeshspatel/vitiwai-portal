@@ -4,6 +4,7 @@ import { getServices } from '@/composition';
 import { loadOverview } from '@/account/overview';
 import { PayForm } from './PayForm';
 import { PaymentOutcome } from './Outcome';
+import { csrfToken } from '@/security/form';
 
 export const metadata = { title: 'Pay your bill' };
 export const dynamic = 'force-dynamic';
@@ -50,6 +51,7 @@ export default async function PayPage({
 
   return (
     <PayForm
+      csrfToken={await csrfToken()}
       invoiceId={invoice.id}
       reference={invoice.reference}
       amountMinor={invoice.dueMinor}

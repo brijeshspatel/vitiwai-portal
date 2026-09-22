@@ -12,6 +12,63 @@ all four.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-09-22
+
+Increment 1E, first half: the security controls of deliverable D10.
+
+### Added
+
+- **CSRF tokens on every mutation.** Middleware mints one, forwards it to
+  the render, and sets it as a cookie; each form writes it into a hidden
+  field; each handler compares the two in constant time. The forms carry
+  no JavaScript, so the server does both halves.
+- **A Content-Security-Policy with no `unsafe-inline` in `script-src`**,
+  carrying a per-request nonce. Verified in a real browser across all
+  eight routes: zero violations, every page rendered, streaming intact.
+- **Zod validation at every handler that takes input.** The payment
+  handler now refuses a fractional amount rather than truncating it, and
+  an instrument the gateway does not understand.
+- **Rate limits** on sign-in (five per email and twenty per address, in
+  five minutes) and on upload (ten per address in ten minutes), counted
+  in the portal's own PostgreSQL so they survive a restart.
+- **An audit trail.** Seven state changes write a row, with any key that
+  looks like a credential or a document dropped before it is stored.
+- **`npm run scan:secrets`**, which reads every blob in the history and
+  exits non-zero on a credential. CI runs it over the full history.
+- Migration `003_security.sql`: `rate_limit` and `audit_event`. Both
+  additive.
+
+### Fixed
+
+- **The account-opening form could not be submitted.** It posted to
+  `/join`, which is a page, and the App Router cannot serve a page and a
+  route handler on one path, so `POST /join` was a 404 and workflow one
+  could not be completed in a browser at all. Everything behind the form
+  already worked and was tested; nothing connected the form to it. It
+  survived five increments because every test called the function
+  directly and none ever submitted the form.
+- `README.md` claimed all five workflows work end to end while one did
+  not. It now says so and states how it is known.
+- A test-isolation defect in `seed-state`: it caught invoices other test
+  files were creating and failed about one run in three.
+
+### Security
+
+- `Permissions-Policy` denies camera, microphone and geolocation, none of
+  which the portal asks for.
+- A failed sign-in is recorded without the attempted password, and a
+  malformed one is answered with the same message as a wrong one, so
+  neither distinguishes a real address from a missing one.
+
+### Known limitations
+
+- `style-src` still allows `unsafe-inline`, because Next inlines critical
+  CSS with no nonce and removing it leaves every page unstyled.
+- An audit row for a change made in Odoo is written after the remote call
+  returns, so it cannot share that call's transaction.
+- Performance, accessibility keyboard paths and end-to-end coverage are
+  the second half of increment 1E and are not in this release.
+
 ## [0.5.0] - 2026-09-22
 
 Interface review. Every area of the portal was inspected against the running

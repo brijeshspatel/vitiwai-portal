@@ -2,6 +2,11 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { getServices } from '@/composition';
 import { currentSession } from '@/auth/require';
 import { isOk } from '@/domain/result';
+import { rejectIfForged } from '@/security/require-csrf';
+import { supportSchema, firstProblem } from '@/security/schemas';
+import { recordEvent } from '@/audit/record';
+import { getPool } from '@/db/client';
+import { loadEnv } from '@/config/env';
 
 /**
  * A fault report becomes an Odoo `project.task`.
@@ -17,8 +22,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (user === null) return NextResponse.redirect(new URL('/signin', origin), 303);
 
   const form = await request.formData();
-  const title = String(form.get('title') ?? '').trim();
-  const description = String(form.get('description') ?? '').trim();
+  // Reject a forged request before anything is read from it.
+  const forged = await rejectIfForged(form);
+  if (forged) return forged;
 
   const back = (params: Record<string, string>) =>
     NextResponse.redirect(
@@ -26,7 +32,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       303,
     );
 
-  if (!title) return back({ error: 'Tell us what the problem is.' });
+  // Parsed before anything is done with it. Reading fields straight off the
+  // form turned a missing one into an empty string and a File into
+  // "[object File]".
+  const parsed = supportSchema.safeParse({
+    title: form.get('title'),
+    description: form.get('description'),
+  });
+  if (!parsed.success) return back({ error: firstProblem(parsed.error) });
+  const { title, description } = parsed.data;
 
   const opened = await getServices().cases.openCase({
     customerId: user.odooPartnerId,
@@ -37,5 +51,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!isOk(opened)) {
     return back({ error: 'We could not log that just now. Please try again shortly.' });
   }
+  await recordEvent(getPool(loadEnv()), {
+    action: 'case.opened',
+    actorUser: user.userId,
+    subjectType: 'case',
+    subjectId: String(opened.value),
+    detail: { title },
+  });
+
   return back({ raised: opened.value });
 }
