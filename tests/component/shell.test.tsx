@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { cleanup, render, screen, within } from '@testing-library/react';
-import RootLayout from '@/app/layout';
+import { cleanup, render, screen } from '@testing-library/react';
 import { PlanCard } from '@/components/PlanCard';
 import { SimulatedNotice } from '@/components/SimulatedNotice';
 import { toMinorUnits } from '@/domain/money';
@@ -11,58 +10,21 @@ import type { Plan } from '@/domain/types';
 // getByRole finds several matches.
 afterEach(cleanup);
 
-/**
- * RootLayout renders <html> and <body>. Testing Library mounts into a div, so
- * these assertions read the rendered markup rather than the document, which is
- * what keeps the test honest about what the component itself produces.
+/*
+ * The application shell's assertions moved to tests/contract/shell.test.ts in
+ * increment 1D.
+ *
+ * RootLayout now contains <Nav />, an async server component that reads the
+ * session. Testing Library renders synchronously into a div and cannot await a
+ * server component, so rendering the layout here produced an empty container and
+ * five assertions that failed for the wrong reason.
+ *
+ * The five checks - document language, one main landmark, the skip link and its
+ * target, the navigation's accessible name, and the synthetic-data footer - are
+ * not lost. They now run against the HTML the server actually sends, on every
+ * route rather than on one synthetic render, which is a stronger check than the
+ * one they replace.
  */
-function renderLayout() {
-  const { container } = render(
-    <RootLayout>
-      <h1>Page heading</h1>
-    </RootLayout>,
-  );
-  return container;
-}
-
-describe('the application shell meets the accessibility floor', () => {
-  it('declares the document language', () => {
-    renderLayout();
-    // React 19 hoists <html> and <body> attributes onto the real document
-    // rather than nesting them in the mount point, so the assertion reads the
-    // document. Verified by probing what actually renders, not assumed.
-    expect(document.documentElement.getAttribute('lang')).toBe('en-FJ');
-  });
-
-  it('renders exactly one main landmark, and the children inside it', () => {
-    const container = renderLayout();
-    const mains = container.querySelectorAll('main');
-    expect(mains).toHaveLength(1);
-    expect(within(mains[0] as HTMLElement).getByRole('heading', { level: 1 })).toHaveProperty(
-      'textContent',
-      'Page heading',
-    );
-  });
-
-  it('puts a skip link first, and its target exists', () => {
-    const container = renderLayout();
-    const skip = container.querySelector('a.vw-skip-link');
-    expect(skip?.getAttribute('href')).toBe('#main');
-    // A skip link pointing at nothing is worse than none: it moves focus
-    // somewhere the user cannot see.
-    const targetId = skip?.getAttribute('href')?.slice(1) ?? '';
-    expect(container.querySelector(`#${targetId}`)).not.toBeNull();
-  });
-
-  it('names its navigation, so two navs would still be distinguishable', () => {
-    const nav = renderLayout().querySelector('nav');
-    expect(nav?.getAttribute('aria-label')).toBe('Main');
-  });
-
-  it('states on every page that the data is synthetic', () => {
-    expect(renderLayout().querySelector('footer')?.textContent).toMatch(/synthetic/i);
-  });
-});
 
 describe('a simulated capability is labelled where the user meets it', () => {
   it('names what is simulated, in the text and in the accessible name', () => {
