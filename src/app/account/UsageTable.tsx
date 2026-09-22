@@ -1,5 +1,6 @@
 import { formatFJD } from '@/domain/money';
 import type { UsagePoint } from '@/domain/types';
+import { formatMonth } from '@/domain/dates';
 
 /**
  * The usage chart is a table.
@@ -44,7 +45,7 @@ export function UsageTable({ points }: { points: readonly UsagePoint[] }) {
         <tbody>
           {points.map((point) => (
             <tr key={point.month}>
-              <th scope="row">{point.month}</th>
+              <th scope="row">{formatMonth(point.month)}</th>
               <td>
                 {/*
                   The bar sits in its own track, and the figure beside it.

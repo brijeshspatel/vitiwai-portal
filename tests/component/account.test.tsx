@@ -3,6 +3,7 @@ import { cleanup, render, screen } from '@testing-library/react';
 import { UsageTable } from '@/app/account/UsageTable';
 import { AccountSummary } from '@/app/account/AccountSummary';
 import { toMinorUnits } from '@/domain/money';
+import { formatMonth } from '@/domain/dates';
 import type { Invoice, UsagePoint } from '@/domain/types';
 
 afterEach(cleanup);
@@ -20,7 +21,11 @@ describe('the usage table', () => {
     const { container } = render(<UsageTable points={points} />);
     const text = container.textContent ?? '';
     for (const point of points) {
-      expect(text).toContain(point.month);
+      // The month is now shown the way a customer reads it. The point of this
+      // test is that every figure survives without styling, not which format
+      // the month is in - but it must assert the format actually rendered, or
+      // it would pass on a page that printed the raw value again.
+      expect(text).toContain(formatMonth(point.month));
       expect(text).toContain(`${point.kilolitres} kL`);
     }
     expect(text).toContain('FJ$30.00');
@@ -99,7 +104,7 @@ describe('the account summary', () => {
     );
     expect(container.textContent).toContain('FJ$45.00');
     expect(container.textContent).toContain('INV/2026/00007');
-    expect(container.textContent).toContain('2026-10-15');
+    expect(container.textContent).toContain('15 October 2026');
   });
 
   it('offers payment only when something is owed', () => {
