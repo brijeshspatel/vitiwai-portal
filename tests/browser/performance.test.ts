@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Browser, Page } from 'playwright';
 import { BASE, DESKTOP, PUBLIC_ROUTES, launch, requirePortal } from './browser';
-import { record, startRecording } from './record';
+import { record } from './record';
 
 /**
  * Four budgets, each measured from the thing that defines it.
@@ -31,7 +31,6 @@ let browser: Browser;
 
 beforeAll(async () => {
   await requirePortal();
-  startRecording();
   browser = await launch();
 }, 120_000);
 

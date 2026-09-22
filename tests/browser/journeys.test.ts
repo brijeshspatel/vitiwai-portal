@@ -14,6 +14,7 @@ import {
 } from './browser';
 import { clearSignInBudget } from '../contract/portal';
 import { record } from './record';
+import { createPayableCustomer } from './payable';
 
 /**
  * Every customer journey, driven through the form a customer sees.
@@ -101,36 +102,26 @@ describe('signing out', () => {
 
 describe('paying a bill', () => {
   /*
-   * This journey consumes what it needs.
+   * This journey brings its own bill.
    *
-   * Invoices come from Odoo, and paying the seeded one leaves the account with
-   * nothing to pay - so the second run of this file meets a different page from
-   * the first. An earlier version asserted on the form unconditionally and
-   * passed alone, then failed in the full suite, which is the worst way for a
-   * test to be wrong: it looked like a product defect and was a harness
-   * assumption.
+   * It used to sign in as the shared demo account and pay that. It worked once,
+   * then left the account owing nothing - and `tests/contract/seed-state.test.ts`
+   * asserts the seeded customer has a non-zero balance, so an unchanged suite
+   * started failing and pointed at code that was correct.
    *
-   * Both states are real and both are asserted. Which one ran is recorded, so a
-   * reader of the measurements can tell whether the submission path was
-   * actually exercised on that run rather than inferring it from a green tick.
-   * `npm run seed` restores an unpaid bill.
+   * The contract suite had already solved this by creating its own payment
+   * targets. A test that consumes state has to supply it.
    */
-  it('either pays the outstanding bill, or says there is none', async () => {
+  it('pays an outstanding bill through the form', async () => {
+    const payer = await createPayableCustomer();
+
     const page = await freshPage();
-    await signInWithKeyboard(page);
+    await signInWithKeyboard(page, payer.email, payer.password);
     await page.goto(`${BASE}/account/pay`, { waitUntil: 'networkidle' });
 
     const payable = (await page.locator('main button[type="submit"]').count()) > 0;
     record('journey', '/account/pay', { submissionExercised: payable ? 1 : 0 });
-
-    if (!payable) {
-      // Nothing outstanding. The page must say so plainly rather than render an
-      // empty form, which is the failure this branch guards against.
-      const body = await text(page);
-      expect(body.toLowerCase()).toMatch(/nothing to pay|no unpaid/);
-      await page.close();
-      return;
-    }
+    expect(payable, 'the customer this test created should owe money').toBe(true);
 
     // The instrument is a select of test values; the amount and invoice are
     // already on the form. Submitting is the whole point: this posts to
@@ -141,7 +132,7 @@ describe('paying a bill', () => {
     expect(after.toLowerCase()).toMatch(/paid|received|thank|receipt|success|declined|insufficient/);
 
     await page.close();
-  });
+  }, 120_000);
 });
 
 describe('raising a support request', () => {

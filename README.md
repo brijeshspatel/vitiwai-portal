@@ -186,6 +186,7 @@ Against a 7.755 GiB Docker ceiling on the development machine.
 | `npm run typecheck` | TypeScript, strict |
 | `npm test` | Unit and component tests |
 | `npm run test:contract` | Contract tests. **Needs the stack running and seeded.** Reads `.env` itself; no manual `source` step |
+| `npm run test:browser` | Accessibility, performance and end-to-end journeys in a real browser. **Needs the stack, and the application built and started** |
 | `npm run preflight` | Port check: listener and bind |
 | `npm run stack:up` / `stack:down` / `stack:reset` | Start, stop, or destroy with volumes |
 | `npm run seed` | Load synthetic data. Idempotent |
@@ -193,8 +194,40 @@ Against a 7.755 GiB Docker ceiling on the development machine.
 | `npm run demo:credential` | Give a seeded customer a password, so you can sign in |
 | `npm run portal:free` | Free port 3000 when a previous server is still holding it |
 
-`npm test` deliberately excludes the contract tests. A suite that fails because Docker is down
-teaches nothing about the change under test.
+`npm test` deliberately excludes the contract and browser tests. A suite that fails because Docker
+is down teaches nothing about the change under test.
+
+### The browser tests, and why they exist separately
+
+`npm run test:browser` needs `npm run build && npm start` first, and a Chromium binary that
+Playwright supplies.
+
+They are not a duplicate of the contract tests. jsdom has no layout engine, so three of the
+things an accessibility claim is usually about - colour contrast, target size and element height -
+cannot be computed there. `axe-core` returns `color-contrast` as *incomplete* and never runs
+`target-size` at all. The browser project answers those by painting the page.
+
+It covers three things:
+
+| What | How it is decided |
+|---|---|
+| Accessibility | `axe-core` against the rendered page; every journey driven by `Tab` and `Enter` with no mouse; every page checked at 320px for sideways scroll |
+| Performance | LCP <= 2.5s, CLS <= 0.1, TBT <= 200ms from `PerformanceObserver`; first-load JavaScript <= 200 KiB transferred, from Resource Timing |
+| Journeys | Each customer journey submitted through its own form, never by calling the code beneath it |
+
+Every measurement is appended to `measurements.jsonl` at the repository root, which is ignored by
+git. It is written because a budget that passes at 41 KiB and one that passes at 199 KiB are the
+same green tick and very different facts.
+
+**The payment journey consumes what it needs.** Paying the outstanding bill leaves nothing to pay,
+and `npm run seed` is idempotent so it issues no replacement. The test asserts both states and
+records which one it met; to exercise the submission again, point it at a customer who still owes
+something:
+
+```
+DEMO_EMAIL=<their email> npm run demo:credential
+DEMO_EMAIL=<their email> npm run test:browser
+```
 
 Every command reads `.env` for itself, falling back to `.env.example` per key. A value already set
 in your shell wins over the file, so you can override one setting without editing anything

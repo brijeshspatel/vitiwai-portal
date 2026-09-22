@@ -80,12 +80,16 @@ export async function launch(): Promise<Browser> {
  * no mouse can get one. Those are different claims and this project makes the
  * second.
  */
-export async function signInWithKeyboard(page: Page): Promise<void> {
+export async function signInWithKeyboard(
+  page: Page,
+  email = DEMO_EMAIL,
+  password = DEMO_PASSWORD,
+): Promise<void> {
   // The harness signs in as the same seeded account from every file, which to
   // the rate limiter is indistinguishable from credential stuffing against one
   // email. Clearing this account's own budget is the harness admitting it is a
   // harness; the limiter itself is proved in tests/contract/ratelimit.test.ts.
-  await clearSignInBudget(DEMO_EMAIL);
+  await clearSignInBudget(email);
 
   await page.goto(`${BASE}/signin`, { waitUntil: 'networkidle' });
 
@@ -93,9 +97,9 @@ export async function signInWithKeyboard(page: Page): Promise<void> {
   // tab count. A layout change that adds a link before the form would silently
   // break a fixed count while the page remained perfectly usable.
   await focusBySelector(page, 'input[name="email"]');
-  await page.keyboard.type(DEMO_EMAIL);
+  await page.keyboard.type(email);
   await page.keyboard.press('Tab');
-  await page.keyboard.type(DEMO_PASSWORD);
+  await page.keyboard.type(password);
   await page.keyboard.press('Enter');
 
   await page.waitForURL((url) => !url.pathname.startsWith('/signin'), { timeout: 30_000 });

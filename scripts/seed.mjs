@@ -248,6 +248,39 @@ if (orphanedDrafts.length > 0) {
   console.log(`PASS - ${orphanedDrafts.length} draft invoice(s) posted`);
 }
 
+// The demo customer must owe something.
+//
+// `tests/contract/seed-state.test.ts` asserts a non-zero balance for this
+// account, and the demonstration itself needs a bill to pay. Paying it - by
+// hand during a demonstration, or by a test that drives the payment form -
+// leaves the dataset in a state this script could not previously repair,
+// because it creates invoices only for customers it creates and this one
+// already exists. The suite then failed with nothing wrong in the code.
+const demoEmail = process.env.DEMO_EMAIL ?? 'adi.baleiwai.19@example.test';
+const demoPartner = await searchRead('res.partner', [['email', '=', demoEmail]], ['id'], { limit: 1 });
+if (demoPartner.length > 0) {
+  const outstanding = await call('account.move', 'search_count', [
+    [
+      ['move_type', '=', 'out_invoice'],
+      ['partner_id', '=', demoPartner[0].id],
+      ['state', '=', 'posted'],
+      ['payment_state', '!=', 'paid'],
+    ],
+  ]);
+  if (outstanding === 0) {
+    const invoiceId = await createOne('account.move', {
+      move_type: 'out_invoice',
+      partner_id: demoPartner[0].id,
+      invoice_date: new Date().toISOString().slice(0, 10),
+      invoice_line_ids: [
+        [0, 0, { name: 'Water usage - current period', quantity: 9, price_unit: TARIFF_MINOR_PER_KILOLITRE / 100 }],
+      ],
+    });
+    await call('account.move', 'action_post', [[invoiceId]]);
+    console.log(`PASS - issued a current bill for ${demoEmail}, which owed nothing`);
+  }
+}
+
 // A guard, not a courtesy: a draft left behind is a dashboard figure that
 // silently reads zero.
 const stillDraft = await call('account.move', 'search_count', [

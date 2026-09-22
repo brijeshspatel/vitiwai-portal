@@ -56,6 +56,9 @@ export default defineConfig({
           name: 'browser',
           environment: 'node',
           include: ['tests/browser/**/*.test.ts'],
+          // Clears the measurements file once per run. A file-level reset
+          // deleted records written by files that ran before it.
+          globalSetup: ['tests/browser/global-setup.ts'],
           // One file at a time. Each file drives its own Chromium against one
           // shared application and one shared database, and the performance
           // budgets measure a page under load - so a parallel run would have
