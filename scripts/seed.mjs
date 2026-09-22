@@ -153,6 +153,8 @@ console.log(`INFO - seeding ${customers.length} customers into Odoo. This takes 
 let created = 0;
 let reused = 0;
 let invoices = 0;
+/** Invoice ids awaiting `action_post`. A draft invoice is a proposal, not a bill. */
+const toPost = [];
 
 for (const [index, customer] of customers.entries()) {
   const existing = await searchRead('res.partner', [['email', '=', customer.email]], ['id'], {
@@ -178,7 +180,7 @@ for (const [index, customer] of customers.entries()) {
     // Three most recent months become invoices, so a dashboard has something
     // to show without making 200 customers x 24 months of documents.
     for (const point of customer.usage.slice(-3)) {
-      await createOne('account.move', {
+      const invoiceId = await createOne('account.move', {
         move_type: 'out_invoice',
         partner_id: partnerId,
         invoice_date: `${point.month}-01`,
@@ -194,6 +196,7 @@ for (const [index, customer] of customers.entries()) {
           ],
         ],
       });
+      toPost.push(invoiceId);
       invoices += 1;
     }
   }
@@ -201,6 +204,36 @@ for (const [index, customer] of customers.entries()) {
   if ((index + 1) % 25 === 0) {
     process.stdout.write(`  ${index + 1}/${customers.length}\r`);
   }
+}
+
+
+// -- post the invoices ------------------------------------------------------
+//
+// Posting is what makes an invoice real. A draft has no reference, contributes
+// nothing to the customer's balance, and is invisible to getUsage - which
+// filters on `posted`. Increment 1A left all 620 in draft, so every dashboard
+// figure would have read zero while agreeing with Odoo perfectly.
+//
+// Posted in batches: 620 single calls cost far more round trips than they need.
+if (toPost.length > 0) {
+  console.log(`INFO - posting ${toPost.length} invoices`);
+  const BATCH = 50;
+  for (let i = 0; i < toPost.length; i += BATCH) {
+    await call('account.move', 'action_post', [toPost.slice(i, i + BATCH)]);
+    process.stdout.write(`  ${Math.min(i + BATCH, toPost.length)}/${toPost.length}`);
+  }
+  console.log(`
+PASS - ${toPost.length} invoices posted`);
+}
+
+// A guard, not a courtesy: a draft left behind is a dashboard figure that
+// silently reads zero.
+const stillDraft = await call('account.move', 'search_count', [
+  [['move_type', '=', 'out_invoice'], ['state', '=', 'draft']],
+]);
+if (stillDraft > 0) {
+  console.error(`FAIL - ${stillDraft} invoice(s) are still draft. The dashboard reads posted invoices only.`);
+  process.exit(1);
 }
 
 console.log(`\nPASS - customers created ${created}, already present ${reused}, invoices created ${invoices}`);

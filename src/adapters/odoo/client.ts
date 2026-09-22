@@ -33,6 +33,17 @@ export interface OdooClient {
     kwargs?: Record<string, unknown>,
   ): Promise<T>;
   createOne(model: string, values: Record<string, unknown>): Promise<string>;
+  /**
+   * `createOne` with an Odoo context. A wizard such as
+   * `account.payment.register` reads `active_model` and `active_ids` from the
+   * context rather than from its own fields, so it cannot be created without
+   * one.
+   */
+  createOneWithContext(
+    model: string,
+    values: Record<string, unknown>,
+    context: Record<string, unknown>,
+  ): Promise<string>;
   searchRead<T = Record<string, OdooValue>>(
     model: string,
     domain: readonly unknown[],
@@ -144,6 +155,15 @@ export function createOdooClient(env: Env): OdooClient {
     /** C1: Odoo returns a list of ids. Callers want one id. */
     async createOne(model, values) {
       const created = await call<number | number[]>(model, 'create', [[values]]);
+      const id = Array.isArray(created) ? created[0] : created;
+      if (typeof id !== 'number') {
+        throw new OdooRpcError(`Odoo returned no id when creating ${model}`);
+      }
+      return String(id);
+    },
+
+    async createOneWithContext(model, values, context) {
+      const created = await call<number | number[]>(model, 'create', [[values]], { context });
       const id = Array.isArray(created) ? created[0] : created;
       if (typeof id !== 'number') {
         throw new OdooRpcError(`Odoo returned no id when creating ${model}`);

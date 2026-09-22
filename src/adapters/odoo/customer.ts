@@ -182,16 +182,40 @@ export class OdooCustomerAdapter implements ErpCustomerPort {
     }
   }
 
+  /**
+   * Registers a real payment against the invoice.
+   *
+   * Until increment 1C this posted a comment, which moved no money and made
+   * deliverable 6's "a successful payment reduces the Odoo balance"
+   * unreachable. `account.payment.register` is the wizard Odoo itself uses:
+   * create it with the invoice in context, then ask it to create the payment.
+   *
+   * The audit note is kept beside the payment rather than instead of it, so a
+   * reviewer in Odoo can see the portal receipt that caused the entry.
+   */
   async recordPayment(
     invoice: InvoiceId,
     receipt: PaymentReceipt,
   ): Promise<Result<void, ErpError>> {
     try {
-      await this.client.call('account.move', 'message_post', [[Number(invoice)]], {
+      const invoiceId = Number(invoice);
+
+      const wizard = await this.client.createOneWithContext(
+        'account.payment.register',
+        { amount: receipt.paidMinor / 100 },
+        { active_model: 'account.move', active_ids: [invoiceId] },
+      );
+
+      await this.client.call('account.payment.register', 'action_create_payments', [
+        Number(wizard),
+      ]);
+
+      await this.client.call('account.move', 'message_post', [[invoiceId]], {
         body:
-          `Payment ${receipt.id} recorded through the portal. ` +
+          `Payment ${receipt.id} registered through the portal. ` +
           `Amount ${receipt.paidMinor} minor units. SIMULATED gateway.`,
       });
+
       return ok(undefined);
     } catch (error) {
       return err(toErpError(error));

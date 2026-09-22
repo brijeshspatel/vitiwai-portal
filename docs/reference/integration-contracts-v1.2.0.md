@@ -2,13 +2,13 @@
 doc_id: reference-integration-contracts
 title: "Integration contracts - Vitiwai portal"
 type: reference
-version: 1.1.0
+version: 1.2.0
 status: active
 created: 2026-09-21
 updated: 2026-09-21
 supersedes: null
 superseded_by: null
-change_summary: "Adds the ocr and docgen services delivered in increment 1B, with their measured confidence bands, replacing the two placeholder port sections."
+change_summary: "Adds the payment register sequence, the gateway adapter and the two idempotency mechanisms delivered in increment 1C."
 ---
 
 # Integration contracts
@@ -95,7 +95,8 @@ are applied asynchronously.
 ## PaymentGatewayPort - mock gateway
 
 **SIMULATED.** It authorises nothing, settles nothing and touches no real money. Every response
-body carries `"simulated": true`.
+body carries `"simulated": true`, and `MockGatewayAdapter` propagates that flag rather than
+dropping it, so nothing downstream can lose track of what it is talking to.
 
 It is shaped as intent-and-confirm, like a real provider, so phase 2 replaces the adapter rather
 than the checkout.
@@ -112,6 +113,40 @@ than the checkout.
 | `pm_test_ok` | `succeeded` |
 | `pm_test_decline` | `declined`, reason `card_declined` |
 | `pm_test_insufficient` | `declined`, reason `insufficient_funds` |
+
+An intent cannot be confirmed twice; the second attempt returns HTTP 409, which the adapter maps
+to `already_resolved`.
+
+### Recording a payment in Odoo
+
+**`message_post` is not a payment.** Until increment 1C `recordPayment` wrote a comment on the
+invoice and moved no money, which made deliverable 6's acceptance criterion unreachable by any
+checkout built on top of it.
+
+The working sequence, verified on 2026-09-22:
+
+1. `account.payment.register.create({ amount }, context: { active_model: 'account.move', active_ids: [id] })`
+2. `action_create_payments(wizard_id)`
+
+`amount_residual` then falls to zero and the partner's `credit` falls by the amount paid. A
+partial amount leaves the remainder owing and `payment_state` reads `partial`.
+
+The wizard reads `active_model` and `active_ids` from the Odoo **context** rather than from its
+own fields, which is why the client has `createOneWithContext`.
+
+### Paying twice is impossible, two ways
+
+The two mechanisms fail differently, which is why both exist.
+
+| Layer | Mechanism | Catches |
+|---|---|---|
+| Request | A unique `idempotency_key`, generated per checkout page load | A refresh, a double-click, a retry after a timeout. The repeat returns the **original** result |
+| Database | `CREATE UNIQUE INDEX ... ON payment (invoice_id) WHERE status = 'succeeded'` | Everything else: two tabs, two keys, one invoice - and the race between checking and inserting |
+
+The payment row is written **before** Odoo is told, so a payment can never be taken and then be
+invisible. If the ERP call fails afterwards the row still exists and reconciliation has something
+to find; the opposite order loses money silently.
+
 
 ## DocumentOcrPort - the `ocr` service
 

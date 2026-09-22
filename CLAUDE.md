@@ -95,6 +95,19 @@ and `docker compose up` then fails opaquely. Run `npm run preflight`, which does
 both checks. `55403-55502` is reserved on the development machine, so **55432 and
 55433 must not be used** - the databases are on 15432 and 15433.
 
+**Ask both address families, or the answer is worthless.** `next start` binds the
+IPv6 wildcard `::`, which is a dual-stack socket: it serves `127.0.0.1` and
+`[::1]`, while `0.0.0.0` stays bindable. A probe that binds `0.0.0.0` alone
+therefore calls an occupied port free. Use `scripts/lib/port.mjs` - never write a
+fresh probe. Measured 2026-09-22: `npm run portal:free` printed
+`PASS - port 3000 is already free` while `curl localhost:3000` returned 200.
+
+**Do not hard-code `powershell.exe`.** Windows PowerShell 5.1 is absent from PATH
+on the development machine and only `pwsh.exe` resolves, so `execFileSync` throws
+`ENOENT`. Try both, and never swallow the failure - the stale-server bug above
+survived because a `catch` discarded that `ENOENT` and the caller reported
+success anyway.
+
 **Only `src/composition.ts` may import from `src/adapters/`.** Everything else
 depends on a port. ESLint fails the run otherwise. This is what keeps phase 2 a
 configuration change.

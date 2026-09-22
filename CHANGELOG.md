@@ -5,10 +5,85 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-`VERSION` is the authoritative version source. It and this file move
-together -- never one alone.
+`VERSION` is the authoritative version source. It, this file, `package.json`
+and `package-lock.json` move together -- never one alone. `tests/unit/version.test.ts`
+enforces it, because they drifted for two releases while nobody was checking
+all four.
 
 ## [Unreleased]
+
+### Fixed
+
+- **`npm run portal:free` did not free the port, and said it had.** It bound
+  `0.0.0.0` to decide whether the port was in use, while `next start` binds the
+  IPv6 wildcard `::` -- a dual-stack socket that serves `127.0.0.1` too and
+  leaves `0.0.0.0` bindable. The script printed
+  `PASS - port 3000 is already free` while the server answered 200. This is the
+  stale-server trap the script was written to prevent.
+- **The same script could never stop anything on this machine.** It invoked
+  `powershell.exe`, which is absent from PATH here, and discarded the resulting
+  `ENOENT` in an empty `catch`. It now tries `pwsh.exe` first, names each process
+  it stops, and fails loudly when no PowerShell is found. The false pass above
+  was hiding this second defect entirely.
+- Both port checks now live in `scripts/lib/port.mjs` and ask both address
+  families, so `npm run preflight` and `npm run portal:free` answer the same
+  question the same way.
+- `package.json` and `package-lock.json` said 0.2.0 while `VERSION` and this
+  file said 0.4.0, having been missed at the 0.3.0 and 0.4.0 releases.
+
+## [0.4.0] - 2026-09-22
+
+Increment 1C: signing in, the account dashboard, paying a bill, plan search
+and support requests. All five customer workflows now work end to end.
+
+### Added
+
+- Server-side sessions with an opaque cookie, sign-in and sign-out, and a
+  `requireSession` guard that every account route calls.
+- The account dashboard: balance, current invoice, due date and usage
+  history, with usage rendered as a table rather than a picture.
+- Bill payment through the simulated gateway, with the payment registered in
+  Odoo, a receipt by email, and two independent guards against paying twice.
+- `MockGatewayAdapter`, the first implementation of `PaymentGatewayPort`.
+- Plan search with category and price filters, as a GET form so a filtered
+  view has its own address.
+- Plan-change requests as Odoo leads and fault reports as Odoo tasks, with
+  status changes made by an agent visible in the portal.
+- Migration 002: `portal_session` and `payment`.
+- `npm run demo:credential` and `npm run portal:free`.
+
+### Changed
+
+- **The seed now posts its invoices.** Increment 1A left all 620 in draft,
+  which meant every balance read zero and the usage history was empty. The
+  seed refuses to finish while any draft remains.
+- **`recordPayment` registers a real payment** through
+  `account.payment.register` rather than posting a comment. It previously
+  moved no money, so "a successful payment reduces the balance" was
+  unreachable.
+- `DeclineReason` and the identity rules are unchanged; `CaseStatus` is now
+  displayed in the customer's language rather than Odoo's codes.
+
+### Security
+
+- Sessions are revocable: signing out deletes the row, so the session dies
+  everywhere rather than only in the browser that asked.
+- One sign-in failure message for an unknown email and a wrong password, and
+  the hash is verified either way so the timing does not distinguish them.
+- Every account read is scoped by the session's own partner; no route takes a
+  customer identifier from the request.
+- `nodemailer` upgraded from 7 to 10 after `npm audit` reported a high
+  severity SMTP command injection advisory. Re-audited to zero, and the
+  receipt was re-verified rather than assumed.
+
+### Known limitations
+
+- Payment authorisation is **simulated** and labelled as such on the
+  checkout and on the receipt.
+- Sessions expire after 12 hours with no sliding renewal. That figure is an
+  assumption, not a considered security posture.
+- Rate limiting on sign-in and payment is deferred to increment 1E.
+- Password reset, email verification and account closure do not exist.
 
 ## [0.3.0] - 2026-09-22
 

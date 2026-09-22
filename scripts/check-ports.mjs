@@ -14,10 +14,10 @@
  * 55433 sit inside the Windows reserved range 55403-55502.
  */
 
-import net from 'node:net';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readEnvFile } from './lib/env-file.mjs';
+import { isBindable, isOccupied } from './lib/port.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -26,31 +26,10 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 // It now merges .env.example and .env per key, where this script previously took
 // the first file whole - a partial .env resolves the rest instead of failing.
 
-/** True when something is already listening on the port. */
-function isOccupied(port) {
-  return new Promise((resolve) => {
-    const socket = net.connect({ host: '127.0.0.1', port });
-    const done = (answer) => {
-      socket.destroy();
-      resolve(answer);
-    };
-    socket.setTimeout(700);
-    socket.once('connect', () => done(true));
-    socket.once('timeout', () => done(false));
-    socket.once('error', () => done(false));
-  });
-}
-
-/** True when the port can actually be bound on all interfaces. */
-function isBindable(port) {
-  return new Promise((resolve) => {
-    const server = net.createServer();
-    server.once('error', () => resolve(false));
-    server.listen({ port, host: '0.0.0.0', exclusive: true }, () => {
-      server.close(() => resolve(true));
-    });
-  });
-}
+// Both checks now live in scripts/lib/port.mjs, so `npm run portal:free` asks
+// the same questions this preflight does. Each asks both address families: a
+// server on the IPv6 wildcard leaves `0.0.0.0` bindable, and a server on IPv4
+// loopback alone is invisible from `[::1]`.
 
 const PORT_KEYS = [
   'PORT_PORTAL',

@@ -1,0 +1,103 @@
+import { afterEach, describe, expect, it } from 'vitest';
+import { cleanup, render, screen } from '@testing-library/react';
+import { UsageTable } from '@/app/account/UsageTable';
+import { AccountSummary } from '@/app/account/AccountSummary';
+import { toMinorUnits } from '@/domain/money';
+import type { Invoice, UsagePoint } from '@/domain/types';
+
+afterEach(cleanup);
+
+const points: UsagePoint[] = [
+  { month: '2026-07', kilolitres: 12, costMinor: toMinorUnits(30) },
+  { month: '2026-08', kilolitres: 18, costMinor: toMinorUnits(45) },
+  { month: '2026-09', kilolitres: 9, costMinor: toMinorUnits(22.5) },
+];
+
+describe('the usage table', () => {
+  it('states every figure as text, with no styling applied', () => {
+    // The whole point of choosing a table: strip the CSS and the data is still
+    // there. A canvas chart would leave nothing behind.
+    const { container } = render(<UsageTable points={points} />);
+    const text = container.textContent ?? '';
+    for (const point of points) {
+      expect(text).toContain(point.month);
+      expect(text).toContain(`${point.kilolitres} kL`);
+    }
+    expect(text).toContain('FJ$30.00');
+    expect(text).toContain('FJ$45.00');
+    expect(text).toContain('FJ$22.50');
+  });
+
+  it('has a caption saying what the numbers mean', () => {
+    const { container } = render(<UsageTable points={points} />);
+    expect(container.querySelector('caption')?.textContent).toMatch(/kilolitres/i);
+  });
+
+  it('gives every column a scoped header and every row a row header', () => {
+    const { container } = render(<UsageTable points={points} />);
+    expect(container.querySelectorAll('th[scope="col"]')).toHaveLength(3);
+    expect(container.querySelectorAll('th[scope="row"]')).toHaveLength(points.length);
+  });
+
+  it('hides the decorative bars from assistive technology', () => {
+    const { container } = render(<UsageTable points={points} />);
+    const bars = container.querySelectorAll('.vw-bar');
+    expect(bars.length).toBe(points.length);
+    for (const bar of bars) expect(bar.getAttribute('aria-hidden')).toBe('true');
+  });
+
+  it('explains an empty history rather than rendering an empty table', () => {
+    const { container } = render(<UsageTable points={[]} />);
+    expect(container.querySelector('table')).toBeNull();
+    expect(container.textContent).toMatch(/no usage history/i);
+  });
+
+  it('does not divide by zero when every month is zero', () => {
+    const flat: UsagePoint[] = [{ month: '2026-09', kilolitres: 0, costMinor: toMinorUnits(0) }];
+    const { container } = render(<UsageTable points={flat} />);
+    expect(container.querySelector('.vw-bar')?.getAttribute('style')).toContain('width: 0%');
+  });
+});
+
+describe('the account summary', () => {
+  const invoice: Invoice = {
+    id: '42',
+    reference: 'INV/2026/00007',
+    status: 'open',
+    totalMinor: toMinorUnits(45),
+    dueMinor: toMinorUnits(45),
+    dueDate: '2026-10-15',
+  };
+
+  it('shows the balance and the invoice it comes from', () => {
+    const { container } = render(
+      <AccountSummary balanceMinor={toMinorUnits(45)} current={invoice} />,
+    );
+    expect(container.textContent).toContain('FJ$45.00');
+    expect(container.textContent).toContain('INV/2026/00007');
+    expect(container.textContent).toContain('2026-10-15');
+  });
+
+  it('offers payment only when something is owed', () => {
+    const owing = render(<AccountSummary balanceMinor={toMinorUnits(45)} current={invoice} />);
+    expect(owing.container.querySelector('a[href^="/account/pay"]')).not.toBeNull();
+    cleanup();
+    const clear = render(<AccountSummary balanceMinor={toMinorUnits(0)} current={invoice} />);
+    expect(clear.container.querySelector('a[href^="/account/pay"]')).toBeNull();
+  });
+
+  it('never prints "false" for an unissued invoice reference', () => {
+    // Odoo convention C3: a draft invoice's name is the boolean false.
+    const draft: Invoice = { ...invoice, reference: null, status: 'draft' };
+    const { container } = render(
+      <AccountSummary balanceMinor={toMinorUnits(45)} current={draft} />,
+    );
+    expect(container.textContent).not.toContain('false');
+    expect(container.textContent).toMatch(/not yet issued/i);
+  });
+
+  it('explains a clear account rather than showing an empty box', () => {
+    const { container } = render(<AccountSummary balanceMinor={toMinorUnits(0)} current={null} />);
+    expect(container.textContent).toMatch(/no unpaid bills/i);
+  });
+});

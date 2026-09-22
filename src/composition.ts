@@ -13,11 +13,13 @@ import { OdooCaseAdapter } from '@/adapters/odoo/case';
 import { MeilisearchAdapter } from '@/adapters/search/meilisearch';
 import { HttpOcrAdapter } from '@/adapters/ocr/http';
 import { RulesIdentityAdapter } from '@/adapters/identity/rules';
+import { MockGatewayAdapter } from '@/adapters/payment/mock';
 import type { CrmCasePort } from '@/ports/crm';
 import type { ErpCustomerPort } from '@/ports/erp';
 import type { SearchPort } from '@/ports/search';
 import type { DocumentOcrPort } from '@/ports/ocr';
 import type { IdentityDecisionPort } from '@/ports/identity';
+import type { PaymentGatewayPort } from '@/ports/payment';
 
 export interface Services {
   readonly customers: ErpCustomerPort;
@@ -26,6 +28,8 @@ export interface Services {
   readonly ocr: DocumentOcrPort;
   /** SIMULATED. See src/adapters/identity/rules.ts. */
   readonly identity: IdentityDecisionPort;
+  /** SIMULATED in phase 1. See src/adapters/payment/mock.ts. */
+  readonly payments: PaymentGatewayPort;
 }
 
 let services: Services | undefined;
@@ -40,6 +44,7 @@ export function getServices(): Services {
       search: new MeilisearchAdapter(env),
       ocr: new HttpOcrAdapter(env.OCR_URL),
       identity: new RulesIdentityAdapter(),
+      payments: new MockGatewayAdapter(env.GATEWAY_URL),
     };
   }
   return services;

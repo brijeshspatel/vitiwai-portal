@@ -1,6 +1,6 @@
 {
   "name": "vitiwai-portal",
-  "version": "0.2.0",
+  "version": "0.4.0",
   "private": true,
   "description": "Vitiwai Utilities customer self-service portal. Synthetic data only.",
   "type": "module",
@@ -23,11 +23,14 @@
     "stack:down": "docker compose down",
     "stack:reset": "docker compose down -v",
     "init:odoo": "node scripts/init-odoo.mjs",
-    "migrate": "node scripts/migrate.mjs"
+    "migrate": "node scripts/migrate.mjs",
+    "demo:credential": "node scripts/demo-credential.mjs",
+    "portal:free": "node scripts/restart-portal.mjs"
   },
   "dependencies": {
     "meilisearch": "0.62.0",
     "next": "16.3.5",
+    "nodemailer": "^10.0.10",
     "pg": "^8.23.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
@@ -36,6 +39,7 @@
   "devDependencies": {
     "@testing-library/react": "16.3.3",
     "@types/node": "26.6.2",
+    "@types/nodemailer": "^8.0.2",
     "@types/pg": "^8.23.1",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",

@@ -2,13 +2,13 @@
 doc_id: runbook-local-stack
 title: "Runbook - the local stack"
 type: runbook
-version: 1.1.0
+version: 1.3.0
 status: active
 created: 2026-09-21
-updated: 2026-09-21
+updated: 2026-09-22
 supersedes: null
 superseded_by: null
-change_summary: "Adds the OCR and migration failures seen while building increment 1B."
+change_summary: "Corrects the stale-server remedy: portal:free reported success without freeing the port, and could not stop a process on this machine at all."
 ---
 
 # Runbook - the local stack
@@ -114,6 +114,56 @@ When the run cannot connect at all, the portal database is not up:
 docker compose ps portal-db
 npm run migrate
 ```
+
+## The portal is serving an old build
+
+The symptom is confusing rather than obvious: a new route returns 404, or a filter appears not to
+work, while the build output clearly lists it. A previous `next start` is still holding port 3000
+and serving the previous build.
+
+`pkill -f "next start"` does not reliably reach the Node process behind it on Windows.
+
+```bash
+npm run portal:free    # stops whatever holds the port, and names it
+```
+
+It prints the process id it stops. **Read that line.** A run that prints
+`PASS - port 3000 is already free` without an `INFO - killing ...` line before it means nothing
+was holding the port, which is a different situation from one having been stopped.
+
+Then start the server and **check a route that only exists in the new build** before trusting any
+verification. This cost two debugging detours during increment 1C, both of which looked like real
+defects.
+
+**This command lied until 2026-09-22, and the way it lied is worth knowing.** It decided whether
+the port was in use by binding `0.0.0.0`. `next start` binds the IPv6 wildcard `::`, which is a
+dual-stack socket: it answers on `127.0.0.1` and `[::1]` while leaving `0.0.0.0` bindable. So the
+script reported the port free and exited, and the stale server carried on serving. Underneath
+that, its kill step invoked `powershell.exe`, which is not on PATH on this machine, and discarded
+the `ENOENT` in an empty `catch` -- so it had never stopped anything here. The false pass hid the
+broken kill completely.
+
+Both checks now live in `scripts/lib/port.mjs` and ask both address families. If you ever need to
+ask whether a port is free, use that module rather than writing the four-line probe again; the
+four-line probe is the bug.
+
+**Requires PowerShell.** `pwsh.exe` is tried first, then `powershell.exe`. Where neither is found
+the script now fails and says so instead of claiming success.
+
+## A payment succeeded at the gateway but not in Odoo
+
+The payment row is written before Odoo is told, so the money is never invisible. Find it:
+
+```bash
+docker compose exec -T portal-db psql -U portal -d portal \
+  -c "SELECT id, invoice_id, amount_minor, receipt_id, created_at
+        FROM payment WHERE status = 'succeeded' ORDER BY created_at DESC LIMIT 10;"
+```
+
+Then check whether Odoo agrees, by looking at `amount_residual` on that invoice. Where the row
+exists and Odoo still shows the amount owing, the ERP call failed after the payment was taken and
+the invoice needs reconciling by hand. The customer was told the payment succeeded, because it
+did.
 
 ## Reclaiming disk
 
