@@ -222,3 +222,16 @@ with `npm run screenshots` while a portal is running.
 * **Odoo refuses the credentials** - the database is not initialised. Run `npm run init:odoo`.
 * **The seed stops half way** - it is idempotent, so run it again. To start clean,
   `npm run stack:reset` then `npm run stack:up` and `npm run seed`.
+
+## Licence
+
+MIT. See [`LICENSE`](LICENSE).
+
+`package.json` keeps `"private": true`, which is not a contradiction: it is npm's
+guard against publishing this application to the registry by accident, and says
+nothing about the terms under which the source is offered.
+
+The data is another matter, and there is none to license. Every customer,
+address, invoice and plan here is generated; no real person's information is in
+this repository or its history.
+
