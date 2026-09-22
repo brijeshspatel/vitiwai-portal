@@ -1,6 +1,6 @@
 # full-stack-ai-developer
 
-## Documentation standards (installed by aia-template-002 - block 6780e7f)
+## Documentation standards
 
 Applies to every human-readable artefact this workflow produces: records,
 reports, specifications, reviews, changelog entries and code comments.
@@ -78,8 +78,8 @@ it offers one, and otherwise as a numbered list of the same actions answered by
 number or first word. The human selects; the workflow executes the selection and
 never asks the human to type an approval sentence or a command name where the
 tool exists. Every approval record states `Presented as: selectable question`
-or `Presented as: numbered list (reason)`. The `/aia:` commands carry this rule
-at every site that asks; this paragraph is for a session that has not run one.
+or `Presented as: numbered list (reason)`. This paragraph is for a session that
+has not yet been told the rule elsewhere.
 
 `python .claude/aia/conventions.py` and `python .claude/aia/diagrams.py` check
 all of this, and the pre-commit hook runs both.

@@ -8,6 +8,12 @@ on:
 # Playwright is a devDependency, used only by `npm run screenshots`, which a
 # person runs locally. Without this, every `npm ci` here would pull a browser
 # build of several hundred megabytes that no job then uses.
+# The workflow reads the repository and writes nothing back. Naming that
+# explicitly matters more once the repository is public: the default token
+# permission is a repository-wide setting, and this does not depend on it.
+permissions:
+  contents: read
+
 env:
   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
 
