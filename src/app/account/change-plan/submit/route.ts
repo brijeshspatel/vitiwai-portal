@@ -4,6 +4,9 @@ import { currentSession } from '@/auth/require';
 import { isOk } from '@/domain/result';
 import { rejectIfForged } from '@/security/require-csrf';
 import { changePlanSchema, firstProblem } from '@/security/schemas';
+import { recordEvent } from '@/audit/record';
+import { getPool } from '@/db/client';
+import { loadEnv } from '@/config/env';
 
 /**
  * A plan change becomes an Odoo `crm.lead`.
@@ -41,5 +44,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!isOk(lead)) {
     return back({ error: 'We could not send that request. Please try again shortly.' });
   }
+  await recordEvent(getPool(loadEnv()), {
+    action: 'planchange.requested',
+    actorUser: user.userId,
+    subjectType: 'lead',
+    subjectId: String(lead.value),
+    detail: { planId },
+  });
+
   return back({ requested: lead.value });
 }

@@ -4,6 +4,9 @@ import { currentSession } from '@/auth/require';
 import { isOk } from '@/domain/result';
 import { rejectIfForged } from '@/security/require-csrf';
 import { supportSchema, firstProblem } from '@/security/schemas';
+import { recordEvent } from '@/audit/record';
+import { getPool } from '@/db/client';
+import { loadEnv } from '@/config/env';
 
 /**
  * A fault report becomes an Odoo `project.task`.
@@ -48,5 +51,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!isOk(opened)) {
     return back({ error: 'We could not log that just now. Please try again shortly.' });
   }
+  await recordEvent(getPool(loadEnv()), {
+    action: 'case.opened',
+    actorUser: user.userId,
+    subjectType: 'case',
+    subjectId: String(opened.value),
+    detail: { title },
+  });
+
   return back({ raised: opened.value });
 }

@@ -4,6 +4,7 @@ import { loadEnv } from '@/config/env';
 import { getPool } from '@/db/client';
 import { deleteSession, SESSION_COOKIE } from '@/auth/session';
 import { rejectIfForged } from '@/security/require-csrf';
+import { recordEvent } from '@/audit/record';
 
 /**
  * Signing out deletes the row, not just the cookie.
@@ -22,7 +23,11 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   const jar = await cookies();
   const id = jar.get(SESSION_COOKIE)?.value;
-  if (id) await deleteSession(getPool(loadEnv()), id);
+  const pool = getPool(loadEnv());
+  if (id) {
+    await deleteSession(pool, id);
+    await recordEvent(pool, { action: 'signout', subjectType: 'session' });
+  }
   jar.delete(SESSION_COOKIE);
   return NextResponse.redirect(new URL('/', process.env.PORTAL_BASE_URL ?? 'http://localhost:3000'));
 }

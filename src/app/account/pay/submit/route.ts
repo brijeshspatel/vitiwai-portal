@@ -9,6 +9,7 @@ import type { Money } from '@/domain/money';
 import type { TestInstrument } from '@/domain/types';
 import { rejectIfForged } from '@/security/require-csrf';
 import { paymentSchema } from '@/security/schemas';
+import { recordEvent } from '@/audit/record';
 
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -55,6 +56,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       email: user.email,
     },
   );
+
+  // Recorded after the payment path returns, whatever it decided. A declined
+  // attempt is as much a state change worth keeping as a successful one.
+  await recordEvent(getPool(env), {
+    action: 'payment.recorded',
+    actorUser: user.userId,
+    subjectType: 'invoice',
+    subjectId: invoiceId,
+    detail: { outcome: outcome.kind, amountMinor, instrument },
+  });
 
   if (outcome.kind === 'paid') {
     return back({

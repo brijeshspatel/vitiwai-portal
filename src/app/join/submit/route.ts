@@ -6,6 +6,7 @@ import { applyForAccount } from '@/onboarding/apply';
 import { rejectIfForged } from '@/security/require-csrf';
 import { firstProblem, onboardingSchema } from '@/security/schemas';
 import { clientAddress, consume, UPLOAD_BY_ADDRESS } from '@/security/ratelimit';
+import { recordEvent } from '@/audit/record';
 
 /**
  * The onboarding form's handler.
@@ -69,6 +70,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       mimeType: upload.type,
       bytes: new Uint8Array(await upload.arrayBuffer()),
     },
+  });
+
+  await recordEvent(getPool(loadEnv()), {
+    action: 'application.submitted',
+    subjectType: 'application',
+    subjectId: result.kind === 'approved' ? result.customerId : null,
+    // The outcome and the email, never the document or what was read from it.
+    detail: { outcome: result.kind, email },
   });
 
   switch (result.kind) {

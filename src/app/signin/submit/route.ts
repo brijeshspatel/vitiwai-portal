@@ -9,6 +9,7 @@ import { SIGNIN_FAILED } from '@/auth/messages';
 import { rejectIfForged } from '@/security/require-csrf';
 import { firstProblem, signInSchema } from '@/security/schemas';
 import { clientAddress, consume, SIGNIN_BY_ADDRESS, SIGNIN_BY_EMAIL } from '@/security/ratelimit';
+import { recordEvent } from '@/audit/record';
 
 /**
  * A plain form post, so signing in works without JavaScript.
@@ -72,9 +73,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const stored = user?.passwordHash ?? 'scrypt$16384$8$1$0000$0000';
   const matches = await verifyPassword(password, stored);
 
-  if (!user || !matches) return fail();
+  if (!user || !matches) {
+    await recordEvent(pool, {
+      action: 'signin.failed',
+      subjectType: 'session',
+      detail: { email, reason: user ? 'wrong-password' : 'no-such-account' },
+    });
+    return fail();
+  }
 
   const id = await createSession(pool, user.id);
+  await recordEvent(pool, {
+    action: 'signin.succeeded',
+    actorUser: user.id,
+    subjectType: 'session',
+    detail: { email },
+  });
 
   // Only a path on this site, so `next` cannot be turned into an open redirect.
   const destination = next.startsWith('/') && !next.startsWith('//') ? next : '/account';
