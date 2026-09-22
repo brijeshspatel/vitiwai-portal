@@ -27,11 +27,19 @@ beforeAll(async () => {
 }, 120_000);
 
 describe('the seeded dataset', () => {
-  it('leaves no customer invoice in draft', async () => {
+  it('leaves no seeded invoice in draft', async () => {
+    // Scoped to seeded invoices by `invoice_date`, which the seed always sets.
+    //
+    // A global "no drafts anywhere" assertion was wrong and made the suite
+    // order-dependent: odoo.test.ts deliberately creates a draft to prove
+    // convention C3, that a draft reports `name: false`. Two tests cannot both
+    // own a global invariant, and the one asserting the absence of something
+    // another test needs is the one that is wrong.
     const drafts = await client.call<number>('account.move', 'search_count', [
       [
         ['move_type', '=', 'out_invoice'],
         ['state', '=', 'draft'],
+        ['invoice_date', '!=', false],
       ],
     ]);
     expect(drafts).toBe(0);
@@ -42,6 +50,7 @@ describe('the seeded dataset', () => {
       [
         ['move_type', '=', 'out_invoice'],
         ['state', '=', 'posted'],
+        ['invoice_date', '!=', false],
       ],
     ]);
     expect(posted).toBeGreaterThan(100);
@@ -53,6 +62,7 @@ describe('the seeded dataset', () => {
       [
         ['move_type', '=', 'out_invoice'],
         ['state', '=', 'posted'],
+        ['invoice_date', '!=', false],
       ],
       ['id', 'name'],
       { limit: 20 },
