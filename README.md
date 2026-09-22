@@ -211,6 +211,10 @@ including the four Odoo call conventions that every adapter must honour.
 
 ## Troubleshooting
 
+**[`screenshots/`](screenshots/) shows every area of the portal**, at
+1440x900 and at 390x844, captured from the running application. Regenerate them
+with `npm run screenshots` while a portal is running.
+
 `docs/how-to/` holds the runbook. The three most common problems:
 
 * **`docker compose up` fails on a port** - run `npm run preflight`; it names the port and says

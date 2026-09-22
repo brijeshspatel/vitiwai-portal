@@ -5,6 +5,12 @@ on:
     branches: ['**']
   pull_request:
 
+# Playwright is a devDependency, used only by `npm run screenshots`, which a
+# person runs locally. Without this, every `npm ci` here would pull a browser
+# build of several hundred megabytes that no job then uses.
+env:
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+
 jobs:
   static:
     name: Lint, types and unit tests
