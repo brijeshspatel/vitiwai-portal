@@ -15,7 +15,7 @@ const NAV = [
   { href: '/', label: 'Home' },
   { href: '/plans', label: 'Plans' },
   { href: '/join', label: 'Open an account' },
-  { href: '/account', label: 'My account' },
+  { href: '/signin', label: 'Sign in' },
   { href: '/support', label: 'Support' },
 ];
 

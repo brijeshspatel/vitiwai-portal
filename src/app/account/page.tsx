@@ -1,16 +1,25 @@
-export const metadata = { title: 'My account' };
+import { requireSession } from '@/auth/require';
 
-export default function AccountPage() {
+export const metadata = { title: 'My account' };
+export const dynamic = 'force-dynamic';
+
+export default async function AccountPage() {
+  const user = await requireSession();
   return (
     <div className="vw-card vw-prose">
       <h1>My account</h1>
       <p>
-        The account dashboard shows your balance, your current invoice and twelve months of usage.
+        Signed in as <strong>{user.email}</strong>.
       </p>
       <p className="vw-muted">
-        It arrives in increment 1C, with deliverables 5 and 6. The data it will read is already
-        seeded in the local stack.
+        Your balance, current invoice and usage history arrive with the next boundary of this
+        increment.
       </p>
+      <form method="post" action="/signout">
+        <button className="vw-button" type="submit">
+          Sign out
+        </button>
+      </form>
     </div>
   );
 }

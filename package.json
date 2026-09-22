@@ -23,7 +23,8 @@
     "stack:down": "docker compose down",
     "stack:reset": "docker compose down -v",
     "init:odoo": "node scripts/init-odoo.mjs",
-    "migrate": "node scripts/migrate.mjs"
+    "migrate": "node scripts/migrate.mjs",
+    "demo:credential": "node scripts/demo-credential.mjs"
   },
   "dependencies": {
     "meilisearch": "0.62.0",
