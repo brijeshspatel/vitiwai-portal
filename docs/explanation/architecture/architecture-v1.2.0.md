@@ -2,13 +2,13 @@
 doc_id: arch-vitiwai-portal
 title: "Architecture - Vitiwai self-service portal"
 type: arch
-version: 1.1.0
+version: 1.2.0
 status: active
 created: 2026-09-21
 updated: 2026-09-21
 supersedes: null
 superseded_by: null
-change_summary: "Adds the ocr and docgen services, the two adapters implemented in increment 1B, and the portal schema."
+change_summary: "Adds authentication, the payment flow and the two tables increment 1C introduced."
 ---
 
 # Architecture - Vitiwai self-service portal
@@ -107,7 +107,7 @@ above the call, at which point the page that knows how to explain it never runs.
 | Data | Owner |
 |---|---|
 | Customers, invoices, payments, leads, support cases | **Odoo.** The portal reads and writes through the ERP ports |
-| Portal sign-in credentials and onboarding applications | **The portal's own PostgreSQL**, from increment 1B: `portal_user` and `onboarding_application` |
+| Portal sign-in credentials, sessions, onboarding applications and payment records | **The portal's own PostgreSQL**: `portal_user`, `onboarding_application` from 1B; `portal_session` and `payment` from 1C |
 | The plan catalogue, for search | **Meilisearch**, indexed from the seed |
 
 An in-progress account application deliberately does not live in Odoo. An abandoned application is
@@ -116,6 +116,20 @@ not a customer, and writing one into the ERP pollutes it.
 **No table holds an uploaded identity document.** The extracted text and the decision are kept,
 because a reviewer needs them; the image is read and discarded inside the request. A contract test
 asserts no `bytea` column exists, so the absence is enforced rather than remembered.
+
+## Who is signed in
+
+Sessions are server-side. The cookie holds 256 bits of opaque randomness and encodes nothing, so
+it cannot be decoded or tampered into another user's session. Signing out deletes the row, which
+kills the session everywhere rather than only in the browser that asked - a signed token could not
+do that without a revocation list, which is the same database read by another name.
+
+`requireSession()` is the guard, and every `/account` route calls it. Middleware also redirects an
+unauthenticated visitor, **but it is not the control**: it can only see that a cookie exists, so a
+route added later that forgets the guard must fail closed on its own.
+
+Every account read is scoped by the session's own `odoo_partner_id`. No route takes a customer
+identifier from the request, which is what stops one customer reading another's bills.
 
 ## Money
 

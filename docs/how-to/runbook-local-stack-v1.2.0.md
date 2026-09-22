@@ -2,13 +2,13 @@
 doc_id: runbook-local-stack
 title: "Runbook - the local stack"
 type: runbook
-version: 1.1.0
+version: 1.2.0
 status: active
 created: 2026-09-21
 updated: 2026-09-21
 supersedes: null
 superseded_by: null
-change_summary: "Adds the OCR and migration failures seen while building increment 1B."
+change_summary: "Adds the stale-server and payment-reconciliation failures seen while building increment 1C."
 ---
 
 # Runbook - the local stack
@@ -114,6 +114,37 @@ When the run cannot connect at all, the portal database is not up:
 docker compose ps portal-db
 npm run migrate
 ```
+
+## The portal is serving an old build
+
+The symptom is confusing rather than obvious: a new route returns 404, or a filter appears not to
+work, while the build output clearly lists it. A previous `next start` is still holding port 3000
+and serving the previous build.
+
+`pkill -f "next start"` does not reliably reach the Node process behind it on Windows.
+
+```bash
+npm run portal:free    # frees the port, whatever is holding it
+```
+
+Then start the server and **check a route that only exists in the new build** before trusting any
+verification. This cost two debugging detours during increment 1C, both of which looked like real
+defects.
+
+## A payment succeeded at the gateway but not in Odoo
+
+The payment row is written before Odoo is told, so the money is never invisible. Find it:
+
+```bash
+docker compose exec -T portal-db psql -U portal -d portal \
+  -c "SELECT id, invoice_id, amount_minor, receipt_id, created_at
+        FROM payment WHERE status = 'succeeded' ORDER BY created_at DESC LIMIT 10;"
+```
+
+Then check whether Odoo agrees, by looking at `amount_residual` on that invoice. Where the row
+exists and Odoo still shows the amount owing, the ERP call failed after the payment was taken and
+the invoice needs reconciling by hand. The customer was told the payment succeeded, because it
+did.
 
 ## Reclaiming disk
 

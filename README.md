@@ -7,9 +7,11 @@ The portal moves five call-centre jobs online: opening an account, seeing what y
 bill, comparing plans, and reporting a fault. Odoo stays the system of record; the portal never
 becomes a second source of truth for anything Odoo already owns.
 
-**Increments 1A and 1B are delivered.** The container stack, the application shell, the
+**Increments 1A, 1B and 1C are delivered.** The container stack, the application shell, the
 synthetic dataset, and the first customer workflow: opening an account with an identity document.
-The remaining four workflows arrive in increments 1C to 1E.
+All five workflows now work end to end: opening an account, seeing what you owe,
+paying it, comparing plans and reporting a fault. Increment 1E adds the accessibility,
+performance and security measurement.
 
 ## What is real, and what is simulated
 
@@ -84,6 +86,44 @@ polls for readiness rather than sleeping, and is safe to re-run.
 
 All ten are configurable in `.env`.
 
+## Signing in and paying a bill
+
+The seed creates customers in Odoo; portal credentials are created by onboarding. To sign in as a
+seeded customer without completing onboarding first:
+
+```bash
+npm run demo:credential
+# adi.baleiwai.19@example.test / demo-passphrase
+```
+
+Then go to <http://localhost:3000/signin>.
+
+**What you can do once signed in**
+
+| Page | What it does |
+|---|---|
+| `/account` | Balance, current invoice, due date and usage history |
+| `/account/pay` | Pay the outstanding bill with a test card |
+| `/account/change-plan` | Ask to move to a different plan. Creates a lead in Odoo |
+| `/account/support` | Report a fault and watch its status |
+| `/plans` | Search and filter the catalogue. No sign-in needed |
+
+**The test cards.** The gateway is simulated and understands exactly three:
+
+| Card | Outcome |
+|---|---|
+| Test card that succeeds | Paid. The Odoo balance drops to zero and a receipt appears in Mailpit |
+| Test card that is declined | Declined. Nothing is charged and the balance is unchanged |
+| Test card with insufficient funds | Declined, with a different reason |
+
+**Paying twice is impossible**, and it is worth trying: submit the payment form, go back and
+submit it again. The second attempt returns the first receipt rather than charging you. Two
+separate attempts on the same invoice are refused by the database itself.
+
+**Watching an agent change a case.** Report a fault at `/account/support`, then open
+<http://localhost:8069>, find the task in Project, and change its state. Reload the support page:
+the new status is there. The portal is a view over Odoo, not a copy of it.
+
 ## Opening an account
 
 Go to <http://localhost:3000/join>. You need a specimen document; the `docgen` service renders
@@ -146,6 +186,8 @@ Against a 7.755 GiB Docker ceiling on the development machine.
 | `npm run stack:up` / `stack:down` / `stack:reset` | Start, stop, or destroy with volumes |
 | `npm run seed` | Load synthetic data. Idempotent |
 | `npm run migrate` | Apply the portal database migrations. Idempotent |
+| `npm run demo:credential` | Give a seeded customer a password, so you can sign in |
+| `npm run portal:free` | Free port 3000 when a previous server is still holding it |
 
 `npm test` deliberately excludes the contract tests. A suite that fails because Docker is down
 teaches nothing about the change under test.
