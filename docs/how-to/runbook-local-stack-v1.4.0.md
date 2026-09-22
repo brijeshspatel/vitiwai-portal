@@ -1,16 +1,3 @@
----
-doc_id: runbook-local-stack
-title: "Runbook - the local stack"
-type: runbook
-version: 1.4.0
-status: active
-created: 2026-09-21
-updated: 2026-09-22
-supersedes: null
-superseded_by: null
-change_summary: "Adds the security controls increment 1E introduced: the policy, the rate-limit budgets, the audit trail and the secret scan, with what to do when each one refuses a request."
----
-
 # Runbook - the local stack
 
 Every failure below was seen while building increment 1A. This is not a list of things that could

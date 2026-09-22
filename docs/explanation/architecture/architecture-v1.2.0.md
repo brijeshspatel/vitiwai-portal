@@ -1,16 +1,3 @@
----
-doc_id: arch-vitiwai-portal
-title: "Architecture - Vitiwai self-service portal"
-type: arch
-version: 1.2.0
-status: active
-created: 2026-09-21
-updated: 2026-09-21
-supersedes: null
-superseded_by: null
-change_summary: "Adds authentication, the payment flow and the two tables increment 1C introduced."
----
-
 # Architecture - Vitiwai self-service portal
 
 This describes what is built, not what is planned. Increment 1A is delivered; the workflow routes

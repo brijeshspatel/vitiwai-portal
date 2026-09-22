@@ -1,14 +1,18 @@
 # Documentation
 
-Each folder below holds one kind of document. Filenames are lower case with
-hyphens, and a document stays in the folder that matches what it is.
+Three folders, each holding one kind of document.
 
 | Folder | Holds |
 |---|---|
-| `docs/how-to/`, `docs/reference/`, `docs/explanation/` | living documents, edited in place with a SemVer bump |
-| `docs/records/` | dated records — immutable once `status: active` |
-| `docs/decisions/` | ADRs, `NNNN-title.md` |
+| `docs/how-to/` | Task-oriented instructions. The runbook lives here. |
+| `docs/reference/` | Facts to look up: the integration contracts each port must honour. |
+| `docs/explanation/` | Why the system is shaped the way it is. The architecture lives here. |
 
-Records are named `YYYY-MM-DD-<type>-<subject>-vX.Y.Z.md`; living documents are
-named `<subject>-vX.Y.Z.md`. The filename version token must equal the `version`
-in the frontmatter.
+Filenames are lower case with hyphens and carry the document's own version -
+`<subject>-vX.Y.Z.md`. That version is the document's, not the product's; it
+moves when the document is materially revised, and the changelog entry for a
+release says which documents moved with it.
+
+Documents are edited in place. There is no separate archive: what a document
+said before a revision is in the git history, which is a better record than a
+second copy that can drift.
