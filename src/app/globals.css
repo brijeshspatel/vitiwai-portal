@@ -338,3 +338,43 @@ dl dt {
 dl dd {
   margin: 0 0 4px 0;
 }
+
+/* The plan filters sit side by side when there is room, and stack when not. */
+.vw-filters {
+  display: grid;
+  gap: 0 var(--vw-gap);
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.vw-filters input,
+.vw-filters select {
+  width: 100%;
+  padding: 8px;
+  font: inherit;
+  color: var(--vw-text);
+  background: var(--vw-surface);
+  border: 1px solid var(--vw-border);
+  border-radius: var(--vw-radius);
+}
+
+fieldset {
+  border: 1px solid var(--vw-border);
+  border-radius: var(--vw-radius);
+  margin: var(--vw-gap) 0;
+}
+
+legend {
+  padding: 0 6px;
+  color: var(--vw-text-muted);
+}
+
+textarea {
+  width: 100%;
+  max-width: var(--vw-measure);
+  padding: 8px;
+  font: inherit;
+  color: var(--vw-text);
+  background: var(--vw-surface);
+  border: 1px solid var(--vw-border);
+  border-radius: var(--vw-radius);
+}
