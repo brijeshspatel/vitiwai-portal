@@ -1,6 +1,7 @@
 import { JoinForm } from './JoinForm';
 import { Outcome, type OutcomeKind } from './Outcome';
 import { SimulatedNotice } from '@/components/SimulatedNotice';
+import { csrfToken } from '@/security/form';
 
 export const metadata = { title: 'Open an account' };
 
@@ -31,7 +32,7 @@ export default async function JoinPage({
         This is a demonstration. Upload only the specimen documents this project generates. Never
         upload a real identity document.
       </SimulatedNotice>
-      <JoinForm error={params.error} />
+      <JoinForm error={params.error} csrfToken={await csrfToken()} />
     </>
   );
 }

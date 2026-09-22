@@ -3,6 +3,7 @@ import { loadEnv } from '@/config/env';
 import { getPool } from '@/db/client';
 import { getServices } from '@/composition';
 import { applyForAccount } from '@/onboarding/apply';
+import { rejectIfForged } from '@/security/require-csrf';
 
 /**
  * The onboarding form's handler.
@@ -27,6 +28,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
 
   const form = await request.formData();
+  // Reject a forged request before anything is read from it.
+  const forged = await rejectIfForged(form);
+  if (forged) return forged;
+
   const text = (key: string) => String(form.get(key) ?? '').trim();
 
   const fullName = text('fullName');

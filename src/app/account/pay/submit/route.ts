@@ -7,6 +7,7 @@ import { payInvoice } from '@/payments/pay';
 import { sendReceipt } from '@/mail/send';
 import type { Money } from '@/domain/money';
 import type { TestInstrument } from '@/domain/types';
+import { rejectIfForged } from '@/security/require-csrf';
 
 const INSTRUMENTS: readonly string[] = ['pm_test_ok', 'pm_test_decline', 'pm_test_insufficient'];
 
@@ -16,6 +17,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (user === null) return NextResponse.redirect(new URL('/signin', origin), 303);
 
   const form = await request.formData();
+  // Reject a forged request before anything is read from it.
+  const forged = await rejectIfForged(form);
+  if (forged) return forged;
+
   const invoiceId = String(form.get('invoiceId') ?? '');
   const amountMinor = Number(form.get('amountMinor') ?? 0);
   const idempotencyKey = String(form.get('idempotencyKey') ?? '');

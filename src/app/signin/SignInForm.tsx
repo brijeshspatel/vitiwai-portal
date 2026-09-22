@@ -1,6 +1,15 @@
-export function SignInForm({ error, next }: { error?: string; next?: string }) {
+export function SignInForm({
+  error,
+  next,
+  csrfToken,
+}: {
+  error?: string;
+  next?: string;
+  csrfToken?: string;
+}) {
   return (
     <form className="vw-card" method="post" action="/signin/submit">
+        <input type="hidden" name="_csrf" value={csrfToken ?? ''} />
       <h1>Sign in</h1>
       <p className="vw-muted vw-prose">
         Use the email address and password you chose when you opened your account.

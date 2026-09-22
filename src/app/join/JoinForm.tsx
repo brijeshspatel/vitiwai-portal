@@ -7,9 +7,10 @@ import { ACCEPTED_TYPES, MAX_UPLOAD_BYTES } from '@/domain/upload';
  * accepts and how large a file may be - before the upload is attempted rather
  * than as an error afterwards.
  */
-export function JoinForm({ error }: { error?: string }) {
+export function JoinForm({ error, csrfToken }: { error?: string; csrfToken?: string }) {
   return (
     <form className="vw-card" method="post" encType="multipart/form-data" action="/join/submit">
+        <input type="hidden" name="_csrf" value={csrfToken ?? ''} />
       <h1>Open an account</h1>
       <p className="vw-muted vw-prose">
         Give your details exactly as they appear on your identity document, and upload a photograph

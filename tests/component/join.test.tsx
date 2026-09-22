@@ -8,8 +8,15 @@ afterEach(cleanup);
 describe('the onboarding form', () => {
   it('gives every input a programmatic label', () => {
     const { container } = render(<JoinForm />);
-    const inputs = [...container.querySelectorAll('input')];
-    expect(inputs.length).toBeGreaterThan(0);
+    // Hidden inputs carry no label and assistive technology does not announce
+    // them, so labelling one is meaningless. The CSRF token added in increment
+    // 1E is the first hidden field in this form; pay.test.tsx already treats
+    // its idempotency key the same way. The count assertion below keeps this
+    // from passing vacuously if the filter ever matched nothing.
+    const inputs = [...container.querySelectorAll('input')].filter(
+      (i) => i.getAttribute('type') !== 'hidden',
+    );
+    expect(inputs.length, 'no visible inputs were found to check').toBeGreaterThanOrEqual(5);
     for (const input of inputs) {
       const id = input.getAttribute('id');
       expect(id, `an input has no id: ${input.outerHTML}`).toBeTruthy();

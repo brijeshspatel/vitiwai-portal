@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { getServices } from '@/composition';
 import { currentSession } from '@/auth/require';
 import { isOk } from '@/domain/result';
+import { rejectIfForged } from '@/security/require-csrf';
 
 /**
  * A plan change becomes an Odoo `crm.lead`.
@@ -16,6 +17,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (user === null) return NextResponse.redirect(new URL('/signin', origin), 303);
 
   const form = await request.formData();
+  // Reject a forged request before anything is read from it.
+  const forged = await rejectIfForged(form);
+  if (forged) return forged;
+
   const planId = String(form.get('planId') ?? '').trim();
 
   const back = (params: Record<string, string>) =>

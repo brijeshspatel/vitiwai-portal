@@ -50,10 +50,26 @@ async function specimen(quality: 'clean' | 'photo' | 'smudged' | 'illegible'): P
 }
 
 async function submit(fields: Record<string, string>, file: Blob | null) {
+  // The form is a mutation, so it carries a CSRF token. The page is fetched
+  // first for the pair: the token it renders and the cookie set beside it.
+  const page = await fetch(`${BASE}/join`);
+  const html = await page.text();
+  const token = /name="_csrf"\s+value="([^"]+)"/.exec(html)?.[1] ?? '';
+  const jar = (page.headers.getSetCookie?.() ?? [])
+    .filter((c) => c.startsWith('vitiwai_csrf='))
+    .map((c) => c.split(';')[0])
+    .join('; ');
+
   const form = new FormData();
   for (const [k, v] of Object.entries(fields)) form.append(k, v);
+  form.append('_csrf', token);
   if (file) form.append('document', file, 'specimen.png');
-  return fetch(`${BASE}/join/submit`, { method: 'POST', body: form, redirect: 'manual' });
+  return fetch(`${BASE}/join/submit`, {
+    method: 'POST',
+    body: form,
+    headers: jar ? { cookie: jar } : {},
+    redirect: 'manual',
+  });
 }
 
 describe('opening an account through the form', () => {

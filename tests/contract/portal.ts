@@ -40,10 +40,26 @@ export async function signIn(
   email = 'adi.baleiwai.19@example.test',
   password = 'demo-passphrase',
 ): Promise<string> {
+  // Sign-in is a mutation, so it carries a CSRF token like any other. The page
+  // is fetched first to obtain the pair: the token it renders, and the cookie
+  // set alongside it. Before increment 1E this helper posted without one, and
+  // adding the guard made every signing-in contract test fail at once - which
+  // is the guard working, not a defect.
+  const page = await fetch(`${BASE}/signin`);
+  const html = await page.text();
+  const token = /name="_csrf"\s+value="([^"]+)"/.exec(html)?.[1] ?? '';
+  const csrfCookie = (page.headers.getSetCookie?.() ?? [])
+    .filter((c) => c.startsWith('vitiwai_csrf='))
+    .map((c) => c.split(';')[0])
+    .join('; ');
+
   const res = await fetch(`${BASE}/signin/submit`, {
     method: 'POST',
-    headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ email, password }),
+    headers: {
+      'content-type': 'application/x-www-form-urlencoded',
+      ...(csrfCookie ? { cookie: csrfCookie } : {}),
+    },
+    body: new URLSearchParams({ email, password, _csrf: token }),
     redirect: 'manual',
   });
   const raw = res.headers.getSetCookie?.() ?? [];

@@ -6,6 +6,7 @@ import { findPortalUserByEmail } from '@/db/users';
 import { verifyPassword } from '@/domain/password';
 import { createSession, SESSION_COOKIE, SESSION_HOURS } from '@/auth/session';
 import { SIGNIN_FAILED } from '@/auth/messages';
+import { rejectIfForged } from '@/security/require-csrf';
 
 /**
  * A plain form post, so signing in works without JavaScript.
@@ -15,6 +16,10 @@ import { SIGNIN_FAILED } from '@/auth/messages';
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const form = await request.formData();
+  // Reject a forged request before anything is read from it.
+  const forged = await rejectIfForged(form);
+  if (forged) return forged;
+
   const email = String(form.get('email') ?? '').trim();
   const password = String(form.get('password') ?? '');
   const next = String(form.get('next') ?? '/account');

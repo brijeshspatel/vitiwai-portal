@@ -3,6 +3,7 @@ import { getServices } from '@/composition';
 import { loadOverview } from '@/account/overview';
 import { AccountSummary } from './AccountSummary';
 import { UsageTable } from './UsageTable';
+import { CsrfField } from '@/security/form';
 
 export const metadata = { title: 'My account' };
 export const dynamic = 'force-dynamic';
@@ -27,6 +28,7 @@ export default async function AccountPage() {
         <p className="vw-muted">
           Signed in as {user.email}.{' '}
           <form method="post" action="/signout" style={{ display: 'inline' }}>
+        <CsrfField />
             <button className="vw-linkish" type="submit">
               Sign out
             </button>

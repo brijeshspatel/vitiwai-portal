@@ -2,6 +2,7 @@ import { requireSession } from '@/auth/require';
 import { getServices } from '@/composition';
 import { isOk } from '@/domain/result';
 import { formatFJD } from '@/domain/money';
+import { CsrfField } from '@/security/form';
 
 export const metadata = { title: 'Change your plan' };
 export const dynamic = 'force-dynamic';
@@ -30,6 +31,7 @@ export default async function ChangePlanPage({
       )}
 
       <form className="vw-card" method="post" action="/account/change-plan/submit">
+        <CsrfField />
         <h1>Change your plan</h1>
         <p className="vw-muted vw-prose">
           Choose the plan you would like. Nothing changes straight away; somebody will confirm it

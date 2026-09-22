@@ -14,12 +14,14 @@ export function PayForm({
   amountMinor,
   idempotencyKey,
   error,
+  csrfToken,
 }: {
   invoiceId: string;
   reference: string | null;
   amountMinor: Money;
   idempotencyKey: string;
   error?: string;
+  csrfToken?: string;
 }) {
   return (
     <>
@@ -29,6 +31,7 @@ export function PayForm({
       </SimulatedNotice>
 
       <form className="vw-card" method="post" action="/account/pay/submit">
+        <input type="hidden" name="_csrf" value={csrfToken ?? ''} />
         <h1>Pay your bill</h1>
 
         {error !== undefined && (
