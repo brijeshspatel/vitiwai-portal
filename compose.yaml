@@ -1,3 +1,15 @@
+# Every published port is bound to 127.0.0.1 deliberately.
+#
+# Docker publishes to all interfaces when no host address is given, which put
+# this stack on the local network: PostgreSQL with portal/portal, Odoo with
+# admin/admin, and Meilisearch with the key in .env.example were all reachable
+# from another machine. Measured on 2026-09-22 at 192.168.1.102, ports 15432,
+# 8069 and 7700, before and after: REACHABLE, then closed.
+#
+# The credentials here are throwaway and the data is synthetic, so this is
+# hardening rather than an incident - but the README tells people to run this,
+# and it should not open a database to the coffee shop.
+#
 # Vitiwai portal - local stack.
 #
 # The OCR service arrived in increment 1B, with the onboarding workflow that
@@ -16,7 +28,7 @@ services:
       POSTGRES_PASSWORD: odoo
       POSTGRES_DB: postgres
     ports:
-      - '${PORT_ODOO_DB:-15433}:5432'
+      - '127.0.0.1:${PORT_ODOO_DB:-15433}:5432'
     volumes:
       - odoo-db-data:/var/lib/postgresql/data
     healthcheck:
@@ -32,7 +44,7 @@ services:
       POSTGRES_PASSWORD: portal
       POSTGRES_DB: portal
     ports:
-      - '${PORT_PORTAL_DB:-15432}:5432'
+      - '127.0.0.1:${PORT_PORTAL_DB:-15432}:5432'
     volumes:
       - portal-db-data:/var/lib/postgresql/data
     healthcheck:
@@ -51,7 +63,7 @@ services:
       USER: odoo
       PASSWORD: odoo
     ports:
-      - '${PORT_ODOO:-8069}:8069'
+      - '127.0.0.1:${PORT_ODOO:-8069}:8069'
     volumes:
       - odoo-data:/var/lib/odoo
     healthcheck:
@@ -70,7 +82,7 @@ services:
       MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-vitiwai_local_dev_key_not_a_secret}
       MEILI_ENV: development
     ports:
-      - '${PORT_MEILI:-7700}:7700'
+      - '127.0.0.1:${PORT_MEILI:-7700}:7700'
     volumes:
       - meili-data:/meili_data
     healthcheck:
@@ -82,8 +94,8 @@ services:
   mailpit:
     image: axllent/mailpit:v1.31
     ports:
-      - '${PORT_MAILPIT_SMTP:-1025}:1025'
-      - '${PORT_MAILPIT_WEB:-8025}:8025'
+      - '127.0.0.1:${PORT_MAILPIT_SMTP:-1025}:1025'
+      - '127.0.0.1:${PORT_MAILPIT_WEB:-8025}:8025'
 
   ocr:
     build: ./services/document
@@ -91,7 +103,7 @@ services:
       SERVICE_MODE: ocr
       PORT: 8090
     ports:
-      - '${PORT_OCR:-8090}:8090'
+      - '127.0.0.1:${PORT_OCR:-8090}:8090'
     healthcheck:
       test: ['CMD-SHELL', 'python3 -c "import urllib.request;urllib.request.urlopen(''http://localhost:8090/healthz'')"']
       interval: 5s
@@ -108,7 +120,7 @@ services:
       SERVICE_MODE: docgen
       PORT: 8092
     ports:
-      - '${PORT_DOCGEN:-8092}:8092'
+      - '127.0.0.1:${PORT_DOCGEN:-8092}:8092'
     healthcheck:
       test: ['CMD-SHELL', 'python3 -c "import urllib.request;urllib.request.urlopen(''http://localhost:8092/healthz'')"']
       interval: 5s
@@ -120,7 +132,7 @@ services:
     environment:
       PORT: 8091
     ports:
-      - '${PORT_GATEWAY:-8091}:8091'
+      - '127.0.0.1:${PORT_GATEWAY:-8091}:8091'
     healthcheck:
       test:
         ['CMD-SHELL', 'node -e "fetch(''http://localhost:8091/healthz'').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"']
