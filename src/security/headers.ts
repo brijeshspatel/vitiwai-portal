@@ -25,8 +25,8 @@
  *
  * `style-src` keeps `unsafe-inline`, and that is a real limitation rather than
  * an oversight: Next inlines critical CSS as a `<style>` element with no nonce,
- * so removing it would leave every page unstyled. It is recorded in the runbook
- * and in the completion report rather than quietly accepted.
+ * so removing it would leave every page unstyled. It is written down in the
+ * runbook rather than quietly accepted.
  */
 export function contentSecurityPolicy(nonce: string): string {
   return [
