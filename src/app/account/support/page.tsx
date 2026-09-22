@@ -2,6 +2,7 @@ import { requireSession } from '@/auth/require';
 import { getServices } from '@/composition';
 import { isOk } from '@/domain/result';
 import type { SupportCase } from '@/domain/types';
+import { formatDate } from '@/domain/dates';
 
 export const metadata = { title: 'Support' };
 export const dynamic = 'force-dynamic';
@@ -90,7 +91,7 @@ export default async function SupportPage({
                 <tr key={supportCase.id}>
                   <th scope="row">{supportCase.title}</th>
                   <td>{STATUS_LABEL[supportCase.status]}</td>
-                  <td>{supportCase.createdAt.slice(0, 10)}</td>
+                  <td>{formatDate(supportCase.createdAt)}</td>
                 </tr>
               ))}
             </tbody>

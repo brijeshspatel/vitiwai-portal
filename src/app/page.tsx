@@ -4,9 +4,14 @@ import { SimulatedNotice } from '@/components/SimulatedNotice';
 export default function HomePage() {
   return (
     <>
-      <div className="vw-card vw-prose">
+      {/*
+        The measure cap belongs on the paragraph, not the card. On the card it
+        made the page header 587px wide beside 1068px siblings, which reads as a
+        layout fault rather than as a reading width.
+      */}
+      <div className="vw-card">
         <h1>Do it online, not on the telephone</h1>
-        <p>
+        <p className="vw-prose">
           Open an account, check what you owe, pay a bill, compare plans and report a fault. The
           call centre is open eight hours a day; this is open all of them.
         </p>
@@ -18,11 +23,21 @@ export default function HomePage() {
       </SimulatedNotice>
 
       <div className="vw-grid">
+        {/*
+          This card described the build, not the service: it was headed
+          "Increment 1A" and told the customer which increments the remaining
+          workflows would arrive in. A customer has no idea what an increment is,
+          and by the time anyone read it the claim was also untrue.
+        */}
         <section className="vw-card">
-          <h2>Increment 1A</h2>
+          <h2>Open an account</h2>
           <p className="vw-muted">
-            The container stack, this application shell and the synthetic dataset. The five customer
-            workflows arrive in increments 1B to 1E.
+            Join in a few minutes with a photograph of your identity document.
+          </p>
+          <p>
+            <Link className="vw-button" href="/join">
+              Open an account
+            </Link>
           </p>
         </section>
         <section className="vw-card">

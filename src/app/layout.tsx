@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import Nav from './Nav';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -10,16 +11,6 @@ export const metadata: Metadata = {
   description:
     'Open an account, see what you owe, pay a bill and report a fault. A demonstration portal using synthetic data only.',
 };
-
-const NAV = [
-  { href: '/', label: 'Home' },
-  { href: '/plans', label: 'Plans' },
-  { href: '/join', label: 'Open an account' },
-  { href: '/account', label: 'My account' },
-  { href: '/account/support', label: 'Support' },
-  { href: '/signin', label: 'Sign in' },
-  { href: '/support', label: 'Support' },
-];
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -37,15 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 Vitiwai Utilities
                 <span>Water and broadband, Fiji</span>
               </Link>
-              <nav className="vw-nav" aria-label="Main">
-                <ul>
-                  {NAV.map((item) => (
-                    <li key={item.href}>
-                      <Link href={item.href}>{item.label}</Link>
-                    </li>
-                  ))}
-                </ul>
-              </nav>
+              <Nav />
             </div>
           </header>
 

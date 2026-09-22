@@ -1,5 +1,6 @@
 import { formatFJD } from '@/domain/money';
 import type { UsagePoint } from '@/domain/types';
+import { formatMonth } from '@/domain/dates';
 
 /**
  * The usage chart is a table.
@@ -44,18 +45,33 @@ export function UsageTable({ points }: { points: readonly UsagePoint[] }) {
         <tbody>
           {points.map((point) => (
             <tr key={point.month}>
-              <th scope="row">{point.month}</th>
+              <th scope="row">{formatMonth(point.month)}</th>
               <td>
                 {/*
-                  The bar is presentation only and carries no information the
+                  The bar sits in its own track, and the figure beside it.
+
+                  The bar used to be a percentage of the whole cell, which it
+                  shared with this figure. The largest month is always scaled to
+                  100%, so its bar filled the cell and pushed the figure onto a
+                  second line - making that one row 66px tall against 42px for
+                  every other. Every customer has a largest month, so every
+                  dashboard had one malformed row, which reads as a fault in the
+                  billing figures.
+
+                  The bar is presentation only and carries no information this
                   cell does not already state in words.
                 */}
-                <span
-                  className="vw-bar"
-                  style={{ width: `${peak === 0 ? 0 : Math.round((point.kilolitres / peak) * 100)}%` }}
-                  aria-hidden="true"
-                />
-                {point.kilolitres} kL
+                <span className="vw-usage__cell">
+                  <span className="vw-usage__track" aria-hidden="true">
+                    <span
+                      className="vw-bar"
+                      style={{
+                        width: `${peak === 0 ? 0 : Math.round((point.kilolitres / peak) * 100)}%`,
+                      }}
+                    />
+                  </span>
+                  <span className="vw-usage__figure">{point.kilolitres} kL</span>
+                </span>
               </td>
               <td>{formatFJD(point.costMinor)}</td>
             </tr>

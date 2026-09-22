@@ -55,8 +55,12 @@ export function PayForm({
 
         <fieldset>
           <legend>Choose a test card</legend>
+          {/*
+            The label carries the class rather than a wrapping paragraph, so the
+            whole row is the target and not just the 24px control itself.
+          */}
           {INSTRUMENTS.map((instrument, index) => (
-            <p key={instrument.value}>
+            <label className="vw-choice" key={instrument.value} htmlFor={instrument.value}>
               <input
                 type="radio"
                 id={instrument.value}
@@ -64,9 +68,9 @@ export function PayForm({
                 value={instrument.value}
                 defaultChecked={index === 0}
                 required
-              />{' '}
-              <label htmlFor={instrument.value}>{instrument.label}</label>
-            </p>
+              />
+              {instrument.label}
+            </label>
           ))}
         </fieldset>
 

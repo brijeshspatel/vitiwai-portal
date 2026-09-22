@@ -23,6 +23,9 @@
   --vw-radius: 8px;
   --vw-gap: 16px;
   --vw-measure: 68ch;
+  /* A field wide enough for an email address and no wider; --vw-measure is a
+     reading width and makes a single-line input look like a mistake. */
+  --vw-field: 26rem;
 
   color-scheme: light;
 }
@@ -85,6 +88,30 @@ body {
     sans-serif;
   font-size: 16px;
   line-height: 1.55;
+}
+
+/*
+ * Links.
+ *
+ * Until increment 1D nothing styled `a` outside `.vw-nav`, so every link in page
+ * content used the browser's own colours - and turned `rgb(158, 158, 255)` once
+ * visited, a purple that appears nowhere in these tokens.
+ *
+ * `:visited` is set to the same colour as `:link` on purpose. A distinct visited
+ * colour inside an authenticated dashboard tells anyone looking at the screen
+ * which bills the customer has already opened, and buys nothing here.
+ */
+a {
+  color: var(--vw-accent);
+  text-decoration: underline;
+}
+
+a:visited {
+  color: var(--vw-accent);
+}
+
+a:hover {
+  color: var(--vw-accent-hover);
 }
 
 /*
@@ -155,13 +182,65 @@ body {
   color: var(--vw-text-muted);
 }
 
-.vw-nav ul {
+.vw-nav__list {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 4px;
   list-style: none;
   margin: 0;
   padding: 0;
+}
+
+/*
+ * The navigation is one `details` element at both sizes.
+ *
+ * Wide: the summary is hidden and the list is forced visible, overriding the
+ * user agent's `details:not([open]) > *` rule. Narrow: the summary becomes the
+ * menu button and the list appears only when it is open. One markup, no
+ * JavaScript, and `summary` is keyboard-operable and announced as a disclosure
+ * without any ARIA of our own.
+ */
+.vw-nav__toggle {
+  display: none;
+}
+
+/*
+ * Two rules are needed to force a closed `details` open, because engines hide
+ * its contents in two different ways.
+ *
+ * Older engines apply `display: none` to the children, which the first rule
+ * overrides. Chrome 131 and later instead wrap the contents in
+ * `::details-content` and set `content-visibility: hidden`, which a `display`
+ * override cannot reach: the list keeps its box - measured at 271px with four
+ * links present - and simply never paints. That is what made the navigation
+ * disappear from the header entirely the first time this was built.
+ */
+.vw-nav__disclosure > .vw-nav__list {
+  display: flex;
+}
+
+.vw-nav__disclosure::details-content {
+  content-visibility: visible;
+  block-size: auto;
+}
+
+/* The sign-out control is a form button, so it is styled to match the links. */
+.vw-nav__signout {
+  display: inline-block;
+  padding: 8px 12px;
+  border: 1px solid transparent;
+  border-radius: var(--vw-radius);
+  background: none;
+  color: var(--vw-text);
+  font: inherit;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.vw-nav__signout:hover {
+  background: var(--vw-surface-sunken);
+  text-decoration: underline;
 }
 
 .vw-nav a {
@@ -199,6 +278,25 @@ body {
 }
 
 .vw-prose {
+  max-width: var(--vw-measure);
+}
+
+/*
+ * A card is a container; the measure belongs to the text inside it.
+ *
+ * `.vw-card.vw-prose` capped the card itself, so a page header rendered 587px
+ * wide beside 1068px siblings and read as a truncated box rather than as a
+ * comfortable line length. Twelve components use the pair, so this is fixed
+ * once here rather than in each of them.
+ */
+.vw-card.vw-prose {
+  max-width: none;
+}
+
+.vw-card.vw-prose > p,
+.vw-card.vw-prose > ul,
+.vw-card.vw-prose > ol,
+.vw-card.vw-prose > dl {
   max-width: var(--vw-measure);
 }
 
@@ -283,6 +381,114 @@ body {
   background: var(--vw-accent-hover);
 }
 
+/*
+ * The narrow layout.
+ *
+ * Until increment 1D the stylesheet had no width media query at all - only
+ * `prefers-color-scheme` and `prefers-reduced-motion`. Nothing overflowed at
+ * 390px, because flex-wrap absorbed it, but nothing was designed either: the
+ * navigation wrapped into three stacked rows 86px tall and the plan grid kept
+ * trying to hold columns.
+ *
+ * 720px is where the navigation stops fitting one row at this type size. It is
+ * measured from this layout rather than taken from a device list, because the
+ * device list would change and this number would not.
+ */
+@media (max-width: 720px) {
+  /* The disclosure becomes a real menu: the summary is the button. */
+  .vw-nav__toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 8px 12px;
+    border: 1px solid var(--vw-border);
+    border-radius: var(--vw-radius);
+    cursor: pointer;
+    list-style: none;
+  }
+
+  /* Safari renders the default marker through a pseudo-element of its own. */
+  .vw-nav__toggle::-webkit-details-marker {
+    display: none;
+  }
+
+  .vw-nav__toggle::after {
+    content: '▾';
+  }
+
+  .vw-nav__disclosure[open] .vw-nav__toggle::after {
+    content: '▴';
+  }
+
+  /* Closed: hidden. Open: a stacked list, full width, each row a real target. */
+  .vw-nav__disclosure:not([open]) > .vw-nav__list {
+    display: none;
+  }
+
+  .vw-nav__disclosure:not([open])::details-content {
+    content-visibility: hidden;
+  }
+
+  .vw-nav__disclosure[open] > .vw-nav__list {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    margin-top: 8px;
+  }
+
+  .vw-nav__list a,
+  .vw-nav__signout {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 12px;
+    text-align: left;
+  }
+
+  .vw-header__inner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .vw-nav {
+    width: 100%;
+  }
+
+  /* One column, rather than a grid trying to fit 260px columns in 358px. */
+  .vw-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .vw-filters {
+    grid-template-columns: 1fr;
+  }
+
+  /*
+   * The bar track is dropped rather than shrunk. At this width it would be
+   * about 120px, which carries no information the figure does not already
+   * give, and it costs the figures the room they need.
+   */
+  .vw-usage__track {
+    display: none;
+  }
+
+  .vw-usage__figure {
+    text-align: left;
+  }
+
+  .vw-usage td:first-of-type {
+    min-width: 0;
+  }
+
+  .vw-table th,
+  .vw-table td {
+    padding: 8px 4px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -299,12 +505,38 @@ body {
  * words in the same cell. Remove this block and the table still says
  * everything it needs to.
  */
+/*
+ * The bar has its own track, so it can never crowd out the figure beside it.
+ *
+ * Before increment 1D the bar was a percentage of the cell it shared with the
+ * text. The largest month scales to 100% by definition, so its bar filled the
+ * cell and wrapped the figure to a second line, leaving that row 66px tall
+ * against 42px for the others. Now the percentage applies to the track and the
+ * figure has a column of its own.
+ */
+.vw-usage__cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vw-usage__track {
+  flex: 1 1 auto;
+  min-width: 40px;
+  display: block;
+}
+
+.vw-usage__figure {
+  flex: 0 0 auto;
+  min-width: 5ch;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 .vw-usage .vw-bar {
-  display: inline-block;
+  display: block;
   height: 0.75em;
   min-width: 2px;
-  margin-right: 8px;
-  vertical-align: baseline;
   background: var(--vw-accent);
   border-radius: 2px;
 }
@@ -346,35 +578,90 @@ dl dd {
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
 }
 
-.vw-filters input,
-.vw-filters select {
+/*
+ * Every form control, not just the ones on the plans page.
+ *
+ * This rule was `.vw-filters input, .vw-filters select` until increment 1D, so
+ * the plans filter was styled and every other field in the product was a browser
+ * default: Arial at 13.33px, `rgb(59, 59, 59)`, a 1.6px inset border, square
+ * corners, and 21px tall. The account-opening form - the first thing a new
+ * customer fills in - was a column of grey boxes next to a themed 46px button.
+ *
+ * Two of the values are load-bearing rather than decorative:
+ *
+ *   min-height: 44px   WCAG 2.2 AA 2.5.8 requires a 24px target. 44px is the
+ *                      comfortable size for a finger and costs nothing here.
+ *   font-size: 16px    Below 16px, iOS Safari zooms the whole page when the
+ *                      field takes focus, and does not zoom back out.
+ */
+input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='submit']):not([type='button']),
+select,
+textarea {
+  display: block;
   width: 100%;
-  padding: 8px;
-  font: inherit;
+  max-width: var(--vw-field);
+  min-height: 44px;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.4;
   color: var(--vw-text);
   background: var(--vw-surface);
   border: 1px solid var(--vw-border);
   border-radius: var(--vw-radius);
+}
+
+textarea {
+  min-height: 120px;
+  max-width: var(--vw-measure);
+  resize: vertical;
+}
+
+/*
+ * Checkboxes and radios keep the native control - `accent-color` themes it
+ * without replacing it, so it stays keyboard-operable and announced correctly
+ * for free. They are excluded from the rule above because a 44px min-height
+ * would produce a 44px circle.
+ */
+input[type='checkbox'],
+input[type='radio'] {
+  width: 24px;
+  height: 24px;
+  margin: 0 8px 0 0;
+  accent-color: var(--vw-accent);
+  vertical-align: middle;
+}
+
+/* The label is part of the target, so the whole row is clickable. */
+.vw-choice {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+input[type='file'] {
+  font-family: inherit;
+  font-size: 16px;
+  color: var(--vw-text);
+  min-height: 44px;
 }
 
 fieldset {
   border: 1px solid var(--vw-border);
   border-radius: var(--vw-radius);
   margin: var(--vw-gap) 0;
+  padding: 12px var(--vw-gap);
 }
 
 legend {
   padding: 0 6px;
   color: var(--vw-text-muted);
+  font-size: 0.9rem;
 }
 
-textarea {
-  width: 100%;
-  max-width: var(--vw-measure);
-  padding: 8px;
-  font: inherit;
-  color: var(--vw-text);
-  background: var(--vw-surface);
-  border: 1px solid var(--vw-border);
-  border-radius: var(--vw-radius);
+label {
+  display: block;
+  margin-bottom: 4px;
 }

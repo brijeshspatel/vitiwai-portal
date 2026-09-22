@@ -5,6 +5,12 @@ on:
     branches: ['**']
   pull_request:
 
+# Playwright is a devDependency, used only by `npm run screenshots`, which a
+# person runs locally. Without this, every `npm ci` here would pull a browser
+# build of several hundred megabytes that no job then uses.
+env:
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+
 jobs:
   static:
     name: Lint, types and unit tests
@@ -44,6 +50,25 @@ jobs:
         run: npm run seed
         env:
           SEED_CUSTOMERS: '25'
+      # The interface tests read HTML from a running portal, so the contract job
+      # has to serve one. It is built here rather than reused from the other job
+      # because the two jobs run on separate runners with no shared filesystem.
+      - name: Give a seeded customer a password
+        run: npm run demo:credential
+      - name: Build the portal
+        run: npm run build
+      - name: Start the portal and wait for it
+        run: |
+          npm start &
+          for i in $(seq 1 60); do
+            if curl -fsS -o /dev/null http://localhost:3000/; then
+              echo "PASS - the portal answered after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "FAIL - the portal did not answer within 60s"
+          exit 1
       - name: Contract tests
         run: npm run test:contract
       - name: Stack logs on failure
