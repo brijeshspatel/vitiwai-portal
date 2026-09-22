@@ -84,6 +84,48 @@ describe('the wide-screen navigation is forced visible both ways', () => {
   });
 });
 
+describe('the layout has a narrow state at all', () => {
+  // Before increment 1D the stylesheet had two media queries, neither about
+  // width. Nothing overflowed at 390px because flex-wrap absorbed it, so a
+  // "nothing overflows" check passed on a layout that had never been designed
+  // for a phone. This asserts the breakpoint exists and does the work.
+  const narrow = (() => {
+    const at = css.indexOf('@media (max-width:');
+    expect(at, 'the stylesheet declares no width breakpoint').toBeGreaterThan(-1);
+    // Take everything to the next top-level @media or end of file.
+    const next = css.indexOf('@media', at + 10);
+    return css.slice(at, next === -1 ? css.length : next);
+  })();
+
+  it('collapses the navigation into a menu rather than stacking rows', () => {
+    expect(narrow).toMatch(/\.vw-nav__toggle\s*\{[^}]*display:\s*inline-flex/);
+    expect(narrow).toMatch(/\.vw-nav__disclosure:not\(\[open\]\)\s*>\s*\.vw-nav__list\s*\{[^}]*display:\s*none/);
+  });
+
+  it('gives each menu row a full-width target', () => {
+    expect(narrow).toMatch(/min-height:\s*44px/);
+  });
+
+  it('stacks the grids to one column', () => {
+    expect(narrow).toMatch(/\.vw-grid\s*\{[^}]*grid-template-columns:\s*1fr/);
+    expect(narrow).toMatch(/\.vw-filters\s*\{[^}]*grid-template-columns:\s*1fr/);
+  });
+
+  it('drops the usage bar track, which carries nothing at that width', () => {
+    expect(narrow).toMatch(/\.vw-usage__track\s*\{[^}]*display:\s*none/);
+  });
+});
+
+describe('a card is a container and the measure belongs to its text', () => {
+  it('does not cap the card itself', () => {
+    expect(ruleFor('.vw-card.vw-prose {')).toMatch(/max-width:\s*none/);
+  });
+
+  it('caps the text inside it instead', () => {
+    expect(ruleFor('.vw-card.vw-prose > p')).toMatch(/max-width:\s*var\(--vw-measure\)/);
+  });
+});
+
 describe('links take their colour from the tokens', () => {
   it('defines a colour for a plain link', () => {
     expect(ruleFor('\na {')).toMatch(/color:\s*var\(--vw-accent\)/);

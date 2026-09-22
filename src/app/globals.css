@@ -281,6 +281,25 @@ a:hover {
   max-width: var(--vw-measure);
 }
 
+/*
+ * A card is a container; the measure belongs to the text inside it.
+ *
+ * `.vw-card.vw-prose` capped the card itself, so a page header rendered 587px
+ * wide beside 1068px siblings and read as a truncated box rather than as a
+ * comfortable line length. Twelve components use the pair, so this is fixed
+ * once here rather than in each of them.
+ */
+.vw-card.vw-prose {
+  max-width: none;
+}
+
+.vw-card.vw-prose > p,
+.vw-card.vw-prose > ul,
+.vw-card.vw-prose > ol,
+.vw-card.vw-prose > dl {
+  max-width: var(--vw-measure);
+}
+
 .vw-muted {
   color: var(--vw-text-muted);
 }
@@ -360,6 +379,114 @@ a:hover {
 
 .vw-button:hover {
   background: var(--vw-accent-hover);
+}
+
+/*
+ * The narrow layout.
+ *
+ * Until increment 1D the stylesheet had no width media query at all - only
+ * `prefers-color-scheme` and `prefers-reduced-motion`. Nothing overflowed at
+ * 390px, because flex-wrap absorbed it, but nothing was designed either: the
+ * navigation wrapped into three stacked rows 86px tall and the plan grid kept
+ * trying to hold columns.
+ *
+ * 720px is where the navigation stops fitting one row at this type size. It is
+ * measured from this layout rather than taken from a device list, because the
+ * device list would change and this number would not.
+ */
+@media (max-width: 720px) {
+  /* The disclosure becomes a real menu: the summary is the button. */
+  .vw-nav__toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 8px 12px;
+    border: 1px solid var(--vw-border);
+    border-radius: var(--vw-radius);
+    cursor: pointer;
+    list-style: none;
+  }
+
+  /* Safari renders the default marker through a pseudo-element of its own. */
+  .vw-nav__toggle::-webkit-details-marker {
+    display: none;
+  }
+
+  .vw-nav__toggle::after {
+    content: '▾';
+  }
+
+  .vw-nav__disclosure[open] .vw-nav__toggle::after {
+    content: '▴';
+  }
+
+  /* Closed: hidden. Open: a stacked list, full width, each row a real target. */
+  .vw-nav__disclosure:not([open]) > .vw-nav__list {
+    display: none;
+  }
+
+  .vw-nav__disclosure:not([open])::details-content {
+    content-visibility: hidden;
+  }
+
+  .vw-nav__disclosure[open] > .vw-nav__list {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    margin-top: 8px;
+  }
+
+  .vw-nav__list a,
+  .vw-nav__signout {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 12px;
+    text-align: left;
+  }
+
+  .vw-header__inner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .vw-nav {
+    width: 100%;
+  }
+
+  /* One column, rather than a grid trying to fit 260px columns in 358px. */
+  .vw-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .vw-filters {
+    grid-template-columns: 1fr;
+  }
+
+  /*
+   * The bar track is dropped rather than shrunk. At this width it would be
+   * about 120px, which carries no information the figure does not already
+   * give, and it costs the figures the room they need.
+   */
+  .vw-usage__track {
+    display: none;
+  }
+
+  .vw-usage__figure {
+    text-align: left;
+  }
+
+  .vw-usage td:first-of-type {
+    min-width: 0;
+  }
+
+  .vw-table th,
+  .vw-table td {
+    padding: 8px 4px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
