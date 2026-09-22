@@ -4,8 +4,8 @@ import { describe, expect, it } from 'vitest';
 
 // Three files carry the release number and nothing keeps them together. They
 // drifted once: `VERSION` and `CHANGELOG.md` reached 0.4.0 while `package.json`
-// and its lock stayed at 0.2.0 through two releases, and the merge evidence
-// graded "version consistent" as a pass after reading only the first two.
+// and its lock stayed at 0.2.0 through two releases, and the check that was
+// meant to catch it passed after reading only the first two.
 const root = (name: string) =>
   readFileSync(fileURLToPath(new URL(`../../${name}`, import.meta.url)), 'utf8');
 

@@ -2,8 +2,8 @@
 
 ## Documentation standards
 
-Applies to every human-readable artefact this workflow produces: records,
-reports, specifications, reviews, changelog entries and code comments.
+Applies to every human-readable artefact in this repository: the README, the
+changelog, the documents under `docs/` and code comments.
 
 **Written using ASD-STE100 Simplified Technical English principles** -- never
 described as *compliant* or *certified*. The dictionary is licensed and nothing
@@ -12,12 +12,12 @@ never happened.
 
 **When two of these pull against each other, the earlier one wins:** Technical
 Accuracy, Safety, Unambiguous Meaning, Completeness, Consistency, Simplicity,
-Brevity. **Brevity is last, deliberately.** Recorded rationale, evidence and the
+Brevity. **Brevity is last, deliberately.** Rationale, evidence and the
 reasoning behind a decision are never removed to satisfy concision.
 
 **One idea per sentence. Active voice, with the actor named.** *The checker
-refuses the commit*, not *the commit is refused* -- in a record of what happened,
-who acted is the information.
+refuses the commit*, not *the commit is refused* -- when documenting what
+happened, who acted is the information.
 
 **One name per thing, and the official one where it exists.** A synonym
 introduced for variety reads as a second thing.
@@ -30,18 +30,13 @@ thing does. A measurement replaces them, or nothing does.
 it and the date it was taken; without either it outlives the truth of it.
 
 **Before drafting:** read the code rather than the documentation about it; run
-what can be run; record what could not be verified and say so -- *could not
-check* is a finding, never recorded as verified; cite living documents by stable
-path, because a versioned citation freezes that document at that version for
-ever.
+what can be run; write down what could not be verified and say so -- *could not
+check* is a finding, never written up as verified.
 
 **Before accepting generated documentation**, check it for Accuracy, Evidence,
 Terminology, Clarity, Concision, Consistency and Actionability, then ask: what
 would a reader still have to ask, what in here is unverified, and what would this
 cost if it were wrong.
-
-Applies to every human-readable artefact this workflow produces: records,
-reports, specifications, reviews, changelog entries and code comments.
 
 **UK English.** `behaviour`, `initialise`, `summarise`, `analyse`, `centre`.
 Words that are correct in both dialects are left alone -- `program` is right for
@@ -59,35 +54,16 @@ plain word. Do not celebrate, and do not hedge a fact that was checked.
 | WARN | warning, attention required |
 | INFO | information |
 
-Never decorative, and never in code, commit subjects or frontmatter. The literal
-symbols are declared in the template's `agent.yaml`.
+Never decorative, and never in code, commit subjects or frontmatter.
 
-**Diagrams.** Mermaid where the subject is a graph -- architecture, workflow,
-state, gates, lifecycles. An aligned table where it is not. Every diagram must
-reflect implemented behaviour, not intended behaviour.
-
-**Citations.** A record must never cite a living document by its versioned
-filename: records are immutable and living documents are renamed on every bump,
-so the citation freezes that document at that version for ever. Cite the folder
-index instead.
-
-**Approvals and decisions are selectable questions.** When the workflow needs a
-human decision it presents one clear question with selectable actions, the
-recommended action first, through the harness's structured question tool where
-it offers one, and otherwise as a numbered list of the same actions answered by
-number or first word. The human selects; the workflow executes the selection and
-never asks the human to type an approval sentence or a command name where the
-tool exists. Every approval record states `Presented as: selectable question`
-or `Presented as: numbered list (reason)`. This paragraph is for a session that
-has not yet been told the rule elsewhere.
-
-`python .claude/aia/conventions.py` and `python .claude/aia/diagrams.py` check
-all of this, and the pre-commit hook runs both.
+**Diagrams.** Mermaid where the subject is a graph -- architecture, state,
+lifecycles. An aligned table where it is not. Every diagram must reflect
+implemented behaviour, not intended behaviour.
 
 ## Vitiwai portal - rules a fresh session would get wrong
 
-Added 2026-09-21 by run `20260921-001-greenfield-sample-project`. Each line is a
-rule, not history; the evidence is in that run's completion report.
+Each line below is a rule, not history. Every one of them cost a defect to
+learn, and each is enforced by a check named beside it.
 
 **Check a port by binding it, never by looking for a listener.** A port the
 operating system reserves has no listener, so a listener check reports it free

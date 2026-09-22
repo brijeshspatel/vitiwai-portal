@@ -26,6 +26,3 @@ next-env.d.ts
 !.env.example
 *.tsbuildinfo
 
-# Points at the private workstream that drives this project. Local plumbing,
-# not part of the product, and it names a repository that is not public.
-.aia-driver
