@@ -10,7 +10,72 @@ and `package-lock.json` move together -- never one alone. `tests/unit/version.te
 enforces it, because they drifted for two releases while nobody was checking
 all four.
 
+Each release is marked by an **annotated** tag named `vX.Y.Z`, on the commit that
+sets that `VERSION`. Annotated rather than lightweight: a lightweight tag is a
+bare pointer with no tagger, date or message, which is most of what a release tag
+is for. Nothing enforces this, so it is written here rather than left to be
+inferred from what previous releases happened to do.
+
 ## [Unreleased]
+
+## [0.7.0] - 2026-09-23
+
+### Added
+
+- A browser test project, `npm run test:browser`. It runs against a real
+  Chromium rather than jsdom, which has no layout engine: colour contrast,
+  target size and element height are computed style, and `axe-core` returns
+  `color-contrast` as *incomplete* and never runs `target-size` at all. The
+  repository had been making accessibility claims that its own harness could not
+  evaluate.
+- Accessibility measured on all eight routes: no serious or critical `axe`
+  violation, every journey completed using only `Tab` and `Enter`, and every
+  page checked at 320px for sideways scroll.
+- Performance budgets, measured rather than asserted: LCP <= 2.5s, CLS <= 0.1,
+  TBT <= 200ms from `PerformanceObserver`, and first-load JavaScript <= 200 KiB
+  from Resource Timing. Measured 2026-09-23: LCP 116-128ms, CLS 0, TBT 0-14ms,
+  136.8 KiB transferred.
+- End-to-end coverage of every customer journey, driven through the form rather
+  than by calling the code beneath it. `POST /join` returned 404 for five
+  increments while its handler had tests and passed them.
+- Every measurement is appended to `measurements.jsonl`, which git ignores. A
+  budget passing at 41 KiB and one passing at 199 KiB are the same green tick
+  and very different facts.
+
+### Fixed
+
+- `/join` no longer scrolls sideways at 320px. A file input sizes itself to its
+  button label plus the browser's "no file chosen" text, and that intrinsic
+  width does not shrink; it measured 294px inside a 254px card.
+- `/account` no longer scrolls sideways at 320px. The usage table scrolls inside
+  its own labelled, focusable region. The wrapper scrolls rather than the table,
+  because `display: block` on a `<table>` drops it from the accessibility tree
+  and a screen reader then reads nine unrelated cells instead of three columns.
+- The streaming fallback reserves height, so replacing it with the real page
+  moves less. `/plans` had recorded a layout shift of 0.0933 against a budget of
+  0.1.
+- `npm run seed` can repair a dataset it half-created. It posted only the
+  invoices it created in the same run while its guard counted every draft in the
+  database, so a run that failed after creating invoices left drafts no later
+  run would ever adopt - and the seed then failed on every invocation while
+  describing itself as idempotent. It also issues a current bill for the demo
+  customer when that customer owes nothing, which is the state the contract
+  suite requires.
+
+### Changed
+
+- CI pins `runs-on: ubuntu-24.04`. `ubuntu-latest` migrates to Ubuntu 26 on
+  19 October 2026, and an unpinned runner changes underneath a pipeline that was
+  green the day before.
+- `actions/checkout` and `actions/setup-node` move from v4 to v7.
+- Two contract tests asserted `elapsed < 200ms`. Both failed on a loaded machine
+  and passed on an idle one with the code identical, so a red run meant
+  "something else was running". They now assert what the search returns. The
+  elapsed time is still measured and reported; it was never useful as a gate.
+- The three documents under `docs/` no longer carry YAML frontmatter, and
+  `docs/README.md` describes the folders that exist rather than two that never
+  did.
+
 
 ## [0.6.0] - 2026-09-22
 
