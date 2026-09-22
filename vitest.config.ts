@@ -45,6 +45,27 @@ export default defineConfig({
           hookTimeout: 120_000,
         },
       },
+      {
+        // Browser tests need a built application and a Chromium binary, so they
+        // are excluded from `npm test` for the same reason the contract project
+        // is: a suite that fails because a dependency is not running teaches
+        // nothing. They exist because jsdom has no layout engine, and three of
+        // the things an accessibility claim is about are computed style.
+        extends: true,
+        test: {
+          name: 'browser',
+          environment: 'node',
+          include: ['tests/browser/**/*.test.ts'],
+          // One file at a time. Each file drives its own Chromium against one
+          // shared application and one shared database, and the performance
+          // budgets measure a page under load - so a parallel run would have
+          // the suite competing with itself for the thing it is measuring.
+          fileParallelism: false,
+          setupFiles: ['tests/contract/setup.ts'],
+          testTimeout: 120_000,
+          hookTimeout: 120_000,
+        },
+      },
     ],
   },
 });
