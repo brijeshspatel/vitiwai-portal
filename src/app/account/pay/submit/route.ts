@@ -8,8 +8,8 @@ import { sendReceipt } from '@/mail/send';
 import type { Money } from '@/domain/money';
 import type { TestInstrument } from '@/domain/types';
 import { rejectIfForged } from '@/security/require-csrf';
+import { paymentSchema } from '@/security/schemas';
 
-const INSTRUMENTS: readonly string[] = ['pm_test_ok', 'pm_test_decline', 'pm_test_insufficient'];
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const origin = request.nextUrl.origin;
@@ -21,23 +21,25 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const forged = await rejectIfForged(form);
   if (forged) return forged;
 
-  const invoiceId = String(form.get('invoiceId') ?? '');
-  const amountMinor = Number(form.get('amountMinor') ?? 0);
-  const idempotencyKey = String(form.get('idempotencyKey') ?? '');
-  const instrument = String(form.get('instrument') ?? '');
-
   const back = (params: Record<string, string>) =>
     NextResponse.redirect(
       new URL(`/account/pay?${new URLSearchParams(params).toString()}`, origin),
       303,
     );
 
-  if (!invoiceId || !idempotencyKey || !Number.isInteger(amountMinor) || amountMinor <= 0) {
+  // The schema replaces four hand-rolled checks and adds the ones they missed:
+  // an upper bound, a fractional amount refused rather than truncated, and the
+  // instrument constrained to the three the gateway understands.
+  const parsed = paymentSchema.safeParse({
+    invoiceId: form.get('invoiceId'),
+    amountMinor: form.get('amountMinor'),
+    instrument: form.get('instrument'),
+    idempotencyKey: form.get('idempotencyKey'),
+  });
+  if (!parsed.success) {
     return back({ outcome: 'unavailable', reason: 'That payment request was not valid.' });
   }
-  if (!INSTRUMENTS.includes(instrument)) {
-    return back({ outcome: 'unavailable', reason: 'Choose one of the test cards.' });
-  }
+  const { invoiceId, amountMinor, instrument, idempotencyKey } = parsed.data;
 
   const env = loadEnv();
   const outcome = await payInvoice(

@@ -4,6 +4,7 @@ import { getPool } from '@/db/client';
 import { getServices } from '@/composition';
 import { applyForAccount } from '@/onboarding/apply';
 import { rejectIfForged } from '@/security/require-csrf';
+import { firstProblem, onboardingSchema } from '@/security/schemas';
 
 /**
  * The onboarding form's handler.
@@ -32,18 +33,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const forged = await rejectIfForged(form);
   if (forged) return forged;
 
-  const text = (key: string) => String(form.get(key) ?? '').trim();
-
-  const fullName = text('fullName');
-  const dateOfBirth = text('dateOfBirth');
-  const documentNumber = text('documentNumber');
-  const email = text('email');
-  const password = String(form.get('password') ?? '');
+  const parsed = onboardingSchema.safeParse({
+    fullName: form.get('fullName'),
+    dateOfBirth: form.get('dateOfBirth'),
+    documentNumber: form.get('documentNumber'),
+    email: form.get('email'),
+    password: form.get('password'),
+  });
+  if (!parsed.success) return back({ error: firstProblem(parsed.error) });
+  const { fullName, dateOfBirth, documentNumber, email, password } = parsed.data;
   const upload = form.get('document');
-
-  if (!fullName || !dateOfBirth || !documentNumber || !email || !password) {
-    return back({ error: 'Fill in every field before sending the form.' });
-  }
 
   // A missing file is the applicant's mistake, not a fault. `validateUpload`
   // rejects an empty one, but it cannot be reached without something to pass.

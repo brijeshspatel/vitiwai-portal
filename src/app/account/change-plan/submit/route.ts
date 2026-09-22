@@ -3,6 +3,7 @@ import { getServices } from '@/composition';
 import { currentSession } from '@/auth/require';
 import { isOk } from '@/domain/result';
 import { rejectIfForged } from '@/security/require-csrf';
+import { changePlanSchema, firstProblem } from '@/security/schemas';
 
 /**
  * A plan change becomes an Odoo `crm.lead`.
@@ -21,15 +22,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const forged = await rejectIfForged(form);
   if (forged) return forged;
 
-  const planId = String(form.get('planId') ?? '').trim();
-
   const back = (params: Record<string, string>) =>
     NextResponse.redirect(
       new URL(`/account/change-plan?${new URLSearchParams(params).toString()}`, origin),
       303,
     );
 
-  if (!planId) return back({ error: 'Choose a plan first.' });
+  const parsed = changePlanSchema.safeParse({ planId: form.get('planId') });
+  if (!parsed.success) return back({ error: firstProblem(parsed.error) });
+  const { planId } = parsed.data;
 
   const lead = await getServices().cases.createLead({
     customerId: user.odooPartnerId,

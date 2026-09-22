@@ -3,6 +3,7 @@ import { getServices } from '@/composition';
 import { currentSession } from '@/auth/require';
 import { isOk } from '@/domain/result';
 import { rejectIfForged } from '@/security/require-csrf';
+import { supportSchema, firstProblem } from '@/security/schemas';
 
 /**
  * A fault report becomes an Odoo `project.task`.
@@ -22,16 +23,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const forged = await rejectIfForged(form);
   if (forged) return forged;
 
-  const title = String(form.get('title') ?? '').trim();
-  const description = String(form.get('description') ?? '').trim();
-
   const back = (params: Record<string, string>) =>
     NextResponse.redirect(
       new URL(`/account/support?${new URLSearchParams(params).toString()}`, origin),
       303,
     );
 
-  if (!title) return back({ error: 'Tell us what the problem is.' });
+  // Parsed before anything is done with it. Reading fields straight off the
+  // form turned a missing one into an empty string and a File into
+  // "[object File]".
+  const parsed = supportSchema.safeParse({
+    title: form.get('title'),
+    description: form.get('description'),
+  });
+  if (!parsed.success) return back({ error: firstProblem(parsed.error) });
+  const { title, description } = parsed.data;
 
   const opened = await getServices().cases.openCase({
     customerId: user.odooPartnerId,

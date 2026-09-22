@@ -7,6 +7,7 @@ import { verifyPassword } from '@/domain/password';
 import { createSession, SESSION_COOKIE, SESSION_HOURS } from '@/auth/session';
 import { SIGNIN_FAILED } from '@/auth/messages';
 import { rejectIfForged } from '@/security/require-csrf';
+import { firstProblem, signInSchema } from '@/security/schemas';
 
 /**
  * A plain form post, so signing in works without JavaScript.
@@ -20,9 +21,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const forged = await rejectIfForged(form);
   if (forged) return forged;
 
-  const email = String(form.get('email') ?? '').trim();
-  const password = String(form.get('password') ?? '');
-  const next = String(form.get('next') ?? '/account');
+  const candidate = signInSchema.safeParse({
+    email: form.get('email'),
+    password: form.get('password'),
+    next: form.get('next') ?? undefined,
+  });
+  if (!candidate.success) {
+    // A malformed sign-in gets the same message as a wrong one. Telling the
+    // sender which field was malformed would distinguish a real address from
+    // a missing one, which is the enumeration oracle SIGNIN_FAILED avoids.
+    return NextResponse.redirect(
+      new URL(`/signin?error=${encodeURIComponent(SIGNIN_FAILED)}`, request.nextUrl.origin),
+      303,
+    );
+  }
+  const { email, password } = candidate.data;
+  const next = candidate.data.next ?? '/account';
 
   const origin = request.nextUrl.origin;
   const fail = () =>
