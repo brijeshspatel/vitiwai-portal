@@ -13,7 +13,9 @@ All five workflows work end to end in a browser, each covered by a test that dri
 it over HTTP rather than calling the function beneath it: opening an account, seeing what you owe,
 paying it, comparing plans and reporting a fault. The layout has a narrow state for
 phones, and `axe-core` reports zero WCAG 2.2 AA violations on every route.
-Increment 1E adds performance measurement, CSRF tokens and rate limiting.
+Increment 1E's security half is delivered: CSRF tokens on every mutation, a
+Content-Security-Policy with no `unsafe-inline`, validation at every handler,
+rate limits and an audit trail. Performance and end-to-end measurement follow.
 
 ## What is real, and what is simulated
 

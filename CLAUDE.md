@@ -153,5 +153,30 @@ Suspense window reports `Loading...` and zero-height rows, which looks exactly
 like a stuck page and a broken layout. Two separate "defects" found this way
 were withdrawn after measuring; the page settles correctly.
 
+**Anything middleware imports must be safe on the Edge runtime.** Importing a
+module that reaches `node:crypto` builds cleanly and then fails every request
+with `Native module not found: node:crypto`. The CSRF cookie and header names
+live in `src/security/csrf-names.ts`, which imports nothing, for that reason.
+
+**A page and a route handler cannot share a path in the App Router.** A form
+that posts to its own page gets 404 for the POST while the GET still renders, so
+the page looks fine and the workflow is dead. Every form posts to a `/submit`
+sibling. `POST /join` was a 404 for five increments because no test submitted a
+form - they all called the function beneath it.
+
+**A bodyless POST to a page returns 200; the same POST with a body returns 404.**
+Any probe asking "does this endpoint exist" must carry a body, or it passes on
+exactly the defect it was written to catch.
+
+**Every mutation carries a CSRF token, and every handler verifies it before
+acting.** `rejectIfForged(form)` is the guard. A new mutating route without it is
+a hole, and no test will notice, because a route nobody wrote a test for is a
+route nobody tested.
+
+**The test suite is not a customer.** It signs in as one seeded account far more
+often than a person would, which a per-email rate limit correctly refuses. The
+harness clears the buckets it filled itself; the limit is never relaxed and
+nothing in `src/` can bypass it.
+
 **Label every simulated capability in three places** - on screen, in the README,
 and in a comment on the adapter.
