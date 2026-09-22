@@ -1,16 +1,3 @@
----
-doc_id: reference-integration-contracts
-title: "Integration contracts - Vitiwai portal"
-type: reference
-version: 1.2.0
-status: active
-created: 2026-09-21
-updated: 2026-09-21
-supersedes: null
-superseded_by: null
-change_summary: "Adds the payment register sequence, the gateway adapter and the two idempotency mechanisms delivered in increment 1C."
----
-
 # Integration contracts
 
 One section per port. Each says whether the system behind it is real or simulated, and records the
