@@ -43,7 +43,31 @@ describe('the usage table', () => {
     const { container } = render(<UsageTable points={points} />);
     const bars = container.querySelectorAll('.vw-bar');
     expect(bars.length).toBe(points.length);
-    for (const bar of bars) expect(bar.getAttribute('aria-hidden')).toBe('true');
+    // The attribute moved from the bar to the track that holds it, which hides
+    // the same subtree. Asserting the guarantee rather than where it is written
+    // means the next layout change does not silently drop it.
+    for (const bar of bars) {
+      expect(bar.closest('[aria-hidden="true"]'), 'each bar must be in a hidden subtree').not.toBeNull();
+    }
+  });
+
+  it('keeps the figure out of the bar’s track, so a full bar cannot displace it', () => {
+    // The defect this replaces: the bar was a percentage of the cell it shared
+    // with the figure, so the largest month - always scaled to 100% - filled the
+    // cell and wrapped its own label onto a second line. That row rendered 66px
+    // tall against 42px for the others, and every customer has a largest month.
+    const { container } = render(<UsageTable points={points} />);
+
+    const peak = container.querySelectorAll('.vw-usage__track .vw-bar');
+    expect(peak.length).toBe(points.length);
+
+    // Exactly one bar is at 100%, and it is the largest month, not every month.
+    const widths = [...peak].map((b) => b.getAttribute('style') ?? '');
+    expect(widths.filter((w) => w.includes('width: 100%'))).toHaveLength(1);
+
+    for (const figure of container.querySelectorAll('.vw-usage__figure')) {
+      expect(figure.closest('.vw-usage__track'), 'the figure must sit outside the track').toBeNull();
+    }
   });
 
   it('explains an empty history rather than rendering an empty table', () => {

@@ -378,12 +378,38 @@ a:hover {
  * words in the same cell. Remove this block and the table still says
  * everything it needs to.
  */
+/*
+ * The bar has its own track, so it can never crowd out the figure beside it.
+ *
+ * Before increment 1D the bar was a percentage of the cell it shared with the
+ * text. The largest month scales to 100% by definition, so its bar filled the
+ * cell and wrapped the figure to a second line, leaving that row 66px tall
+ * against 42px for the others. Now the percentage applies to the track and the
+ * figure has a column of its own.
+ */
+.vw-usage__cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vw-usage__track {
+  flex: 1 1 auto;
+  min-width: 40px;
+  display: block;
+}
+
+.vw-usage__figure {
+  flex: 0 0 auto;
+  min-width: 5ch;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 .vw-usage .vw-bar {
-  display: inline-block;
+  display: block;
   height: 0.75em;
   min-width: 2px;
-  margin-right: 8px;
-  vertical-align: baseline;
   background: var(--vw-accent);
   border-radius: 2px;
 }
