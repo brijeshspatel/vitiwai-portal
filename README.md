@@ -242,8 +242,9 @@ The application depends on six **ports** - `ErpCustomerPort`, `CrmCasePort`, `Pa
 This is what makes phase 2 a configuration change: replacing the simulated gateway with a real
 provider touches `src/composition.ts` and nothing else.
 
-See `docs/explanation/architecture/` for the architecture and `docs/reference/` for the integration contracts,
-including the four Odoo call conventions that every adapter must honour.
+See [the architecture](docs/explanation/architecture/architecture.md) for how the pieces fit, and
+[the integration contracts](docs/reference/integration-contracts.md) for what each port must honour,
+including the four Odoo call conventions every adapter has to get right.
 
 ## Troubleshooting
 
@@ -251,7 +252,8 @@ including the four Odoo call conventions that every adapter must honour.
 1440x900 and at 390x844, captured from the running application. Regenerate them
 with `npm run screenshots` while a portal is running.
 
-`docs/how-to/` holds the runbook. The three most common problems:
+[The runbook](docs/how-to/runbook-local-stack.md) covers the failures seen while building this.
+The three most common:
 
 * **`docker compose up` fails on a port** - run `npm run preflight`; it names the port and says
   whether it was occupied or refused.
