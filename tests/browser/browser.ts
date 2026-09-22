@@ -31,8 +31,17 @@ export const ACCOUNT_ROUTES = [
 ] as const;
 export const ALL_ROUTES = [...PUBLIC_ROUTES, ...ACCOUNT_ROUTES] as const;
 
-export const DEMO_EMAIL = 'adi.baleiwai.19@example.test';
-export const DEMO_PASSWORD = 'demo-passphrase';
+/*
+ * The account these journeys drive.
+ *
+ * Overridable by the same two variables `scripts/demo-credential.mjs` reads, so
+ * a run can be pointed at a different seeded customer without editing a test.
+ * That matters for the payment journey: paying the bill consumes it, the seed
+ * is idempotent and issues no replacement, so the only way to exercise the
+ * submission again is a customer who still owes something.
+ */
+export const DEMO_EMAIL = process.env.DEMO_EMAIL ?? 'adi.baleiwai.19@example.test';
+export const DEMO_PASSWORD = process.env.DEMO_PASSWORD ?? 'demo-passphrase';
 
 /** The narrowest width worth supporting. Below this, nothing is designed for. */
 export const NARROW = { width: 320, height: 640 };
@@ -117,8 +126,40 @@ export async function typeInto(page: Page, selector: string, value: string): Pro
   await page.keyboard.type(value);
 }
 
-/** Submits by pressing Enter on the submit control, reached by Tab. */
-export async function submitByKeyboard(page: Page, selector = 'button[type="submit"]') {
+/**
+ * Submits by pressing Enter on the submit control, reached by Tab.
+ *
+ * Scoped to `main` by default. The header carries a sign-out button that is
+ * also `type="submit"`, so the unscoped selector matches two controls on every
+ * signed-in page - and the first match is the one that ends the session, which
+ * makes every journey test log itself out instead of submitting its form.
+ */
+export async function submitByKeyboard(page: Page, selector = 'main button[type="submit"]') {
   await focusBySelector(page, selector);
   await page.keyboard.press('Enter');
+}
+
+/**
+ * Submits, then waits for the page that results.
+ *
+ * Pressing Enter starts a navigation, and anything evaluated in the page while
+ * that navigation is in flight fails with "Execution context was destroyed".
+ * Waiting afterwards is not enough: `waitForLoadState` can resolve against the
+ * document being replaced, so the next `evaluate` lands in the gap.
+ *
+ * The wait is therefore armed *before* the key is pressed, which is the only
+ * ordering with no window between the two.
+ */
+export async function submitAndWait(
+  page: Page,
+  selector = 'main button[type="submit"]',
+): Promise<void> {
+  const navigated = page
+    .waitForEvent('framenavigated', { timeout: 30_000 })
+    .catch(() => null);
+  await submitByKeyboard(page, selector);
+  await navigated;
+  // Settle. A handler that redirects produces two navigations, and the second
+  // is the one carrying the page a customer reads.
+  await page.waitForLoadState('networkidle').catch(() => undefined);
 }

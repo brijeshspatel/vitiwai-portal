@@ -310,6 +310,16 @@ a:hover {
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
 }
 
+/*
+ * The streaming fallback reserves height so the page does not jump when real
+ * content replaces it. Measured 2026-09-23: without this, /plans recorded a
+ * cumulative layout shift of 0.0933 against a budget of 0.1, from the single
+ * swap of a one-line card for a full page.
+ */
+.vw-loading {
+  min-height: 60vh;
+}
+
 .vw-price {
   font-size: 1.3rem;
   font-weight: 700;

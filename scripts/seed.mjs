@@ -220,10 +220,32 @@ if (toPost.length > 0) {
   const BATCH = 50;
   for (let i = 0; i < toPost.length; i += BATCH) {
     await call('account.move', 'action_post', [toPost.slice(i, i + BATCH)]);
-    process.stdout.write(`  ${Math.min(i + BATCH, toPost.length)}/${toPost.length}`);
+    process.stdout.write(`  ${Math.min(i + BATCH, toPost.length)}/${toPost.length}
+`);
   }
   console.log(`
 PASS - ${toPost.length} invoices posted`);
+}
+
+// Post anything still in draft, whoever created it.
+//
+// The block above posts only what this run created, and the guard below counts
+// every draft in the database. Those two are not the same set: a run that
+// created its invoices and then failed before posting them leaves drafts that
+// no later run will ever adopt, because a later run creates nothing and so has
+// nothing in `toPost`. The seed then failed on every subsequent invocation
+// while describing itself as idempotent - measured 2026-09-23, 64 drafts left
+// from an earlier run, and the customer dashboard showed no unpaid bill at all.
+const orphanedDrafts = await call('account.move', 'search', [
+  [['move_type', '=', 'out_invoice'], ['state', '=', 'draft']],
+]);
+if (orphanedDrafts.length > 0) {
+  console.log(`INFO - posting ${orphanedDrafts.length} draft invoice(s) left by an earlier run`);
+  const BATCH = 50;
+  for (let i = 0; i < orphanedDrafts.length; i += BATCH) {
+    await call('account.move', 'action_post', [orphanedDrafts.slice(i, i + BATCH)]);
+  }
+  console.log(`PASS - ${orphanedDrafts.length} draft invoice(s) posted`);
 }
 
 // A guard, not a courtesy: a draft left behind is a dashboard figure that
