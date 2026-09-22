@@ -9,7 +9,8 @@ becomes a second source of truth for anything Odoo already owns.
 
 **Increments 1A, 1B and 1C are delivered, and the interface has been reviewed.** The container stack, the application shell, the
 synthetic dataset, and the first customer workflow: opening an account with an identity document.
-All five workflows work end to end: opening an account, seeing what you owe,
+All five workflows work end to end in a browser, each covered by a test that drives
+it over HTTP rather than calling the function beneath it: opening an account, seeing what you owe,
 paying it, comparing plans and reporting a fault. The layout has a narrow state for
 phones, and `axe-core` reports zero WCAG 2.2 AA violations on every route.
 Increment 1E adds performance measurement, CSRF tokens and rate limiting.

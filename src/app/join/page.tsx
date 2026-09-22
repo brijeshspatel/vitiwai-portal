@@ -1,16 +1,37 @@
 import { JoinForm } from './JoinForm';
+import { Outcome, type OutcomeKind } from './Outcome';
 import { SimulatedNotice } from '@/components/SimulatedNotice';
 
 export const metadata = { title: 'Open an account' };
 
-export default function JoinPage() {
+const OUTCOMES: readonly OutcomeKind[] = ['approved', 'referred', 'declined'];
+
+/**
+ * The form, or the outcome of having sent it.
+ *
+ * The handler at /join/submit redirects back here with the result in the query
+ * string, so a refresh re-reads an outcome instead of re-applying.
+ */
+export default async function JoinPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ outcome?: string; reasons?: string; error?: string }>;
+}) {
+  const params = await searchParams;
+  const outcome = OUTCOMES.find((k) => k === params.outcome);
+
+  if (outcome) {
+    const reasons = params.reasons ? params.reasons.split(',').filter(Boolean) : [];
+    return <Outcome kind={outcome} reasons={reasons} />;
+  }
+
   return (
     <>
       <SimulatedNotice what="identity verification">
         This is a demonstration. Upload only the specimen documents this project generates. Never
         upload a real identity document.
       </SimulatedNotice>
-      <JoinForm />
+      <JoinForm error={params.error} />
     </>
   );
 }

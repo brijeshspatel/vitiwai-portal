@@ -9,7 +9,7 @@ import { ACCEPTED_TYPES, MAX_UPLOAD_BYTES } from '@/domain/upload';
  */
 export function JoinForm({ error }: { error?: string }) {
   return (
-    <form className="vw-card" method="post" encType="multipart/form-data" action="/join">
+    <form className="vw-card" method="post" encType="multipart/form-data" action="/join/submit">
       <h1>Open an account</h1>
       <p className="vw-muted vw-prose">
         Give your details exactly as they appear on your identity document, and upload a photograph
