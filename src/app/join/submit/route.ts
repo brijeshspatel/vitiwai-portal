@@ -5,6 +5,7 @@ import { getServices } from '@/composition';
 import { applyForAccount } from '@/onboarding/apply';
 import { rejectIfForged } from '@/security/require-csrf';
 import { firstProblem, onboardingSchema } from '@/security/schemas';
+import { clientAddress, consume, UPLOAD_BY_ADDRESS } from '@/security/ratelimit';
 
 /**
  * The onboarding form's handler.
@@ -32,6 +33,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // Reject a forged request before anything is read from it.
   const forged = await rejectIfForged(form);
   if (forged) return forged;
+
+  // Each application costs an OCR read, so the upload is limited by address
+  // before anything is parsed or read.
+  const limit = await consume(getPool(loadEnv()), UPLOAD_BY_ADDRESS, clientAddress(request));
+  if (!limit.allowed) {
+    return back({ error: 'Too many applications from here just now. Try again shortly.' });
+  }
 
   const parsed = onboardingSchema.safeParse({
     fullName: form.get('fullName'),

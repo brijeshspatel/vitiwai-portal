@@ -35,14 +35,37 @@ describe('the seeded dataset', () => {
     // convention C3, that a draft reports `name: false`. Two tests cannot both
     // own a global invariant, and the one asserting the absence of something
     // another test needs is the one that is wrong.
+    // Increment 1E narrowed it again. Excluding invoices with no date removed
+    // odoo.test.ts's draft, but not the ones pay.test.ts and
+    // payment-erp.test.ts create - those carry a date, and vitest runs test
+    // files in parallel, so this assertion caught another file's invoice
+    // mid-flight and failed roughly one run in three.
+    //
+    // A seeded invoice is a historical one: the seed dates them across previous
+    // months, and every invoice a test creates is dated today. Scoping to
+    // before today makes this assert about the seed, which is what the file is
+    // named for.
+    const today = new Date().toISOString().slice(0, 10);
     const drafts = await client.call<number>('account.move', 'search_count', [
       [
         ['move_type', '=', 'out_invoice'],
         ['state', '=', 'draft'],
         ['invoice_date', '!=', false],
+        ['invoice_date', '<', today],
       ],
     ]);
     expect(drafts).toBe(0);
+
+    // The scope is narrower, so prove it still looks at something: the seed's
+    // own posted invoices are in the same range and must be found.
+    const seeded = await client.call<number>('account.move', 'search_count', [
+      [
+        ['move_type', '=', 'out_invoice'],
+        ['invoice_date', '!=', false],
+        ['invoice_date', '<', today],
+      ],
+    ]);
+    expect(seeded, 'the narrowed scope matched no seeded invoice at all').toBeGreaterThan(0);
   }, 60_000);
 
   it('has posted invoices to read', async () => {

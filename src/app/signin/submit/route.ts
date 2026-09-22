@@ -8,6 +8,7 @@ import { createSession, SESSION_COOKIE, SESSION_HOURS } from '@/auth/session';
 import { SIGNIN_FAILED } from '@/auth/messages';
 import { rejectIfForged } from '@/security/require-csrf';
 import { firstProblem, signInSchema } from '@/security/schemas';
+import { clientAddress, consume, SIGNIN_BY_ADDRESS, SIGNIN_BY_EMAIL } from '@/security/ratelimit';
 
 /**
  * A plain form post, so signing in works without JavaScript.
@@ -36,6 +37,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   }
   const { email, password } = candidate.data;
+
+  // Two budgets: per email slows guessing at one account, per address slows
+  // spraying across many. Both are counted before the password is checked, so
+  // the cost of an attempt does not depend on whether the account exists.
+  const pool = getPool(loadEnv());
+  const byEmail = await consume(pool, SIGNIN_BY_EMAIL, email.toLowerCase());
+  const byAddress = await consume(pool, SIGNIN_BY_ADDRESS, clientAddress(request));
+  if (!byEmail.allowed || !byAddress.allowed) {
+    const resetsAt = byEmail.allowed ? byAddress.resetsAt : byEmail.resetsAt;
+    return new NextResponse('Too many attempts. Try again shortly.', {
+      status: 429,
+      headers: {
+        'content-type': 'text/plain; charset=utf-8',
+        'retry-after': String(Math.max(1, Math.ceil((resetsAt.getTime() - Date.now()) / 1000))),
+      },
+    });
+  }
   const next = candidate.data.next ?? '/account';
 
   const origin = request.nextUrl.origin;
@@ -47,7 +65,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   if (!email || !password) return fail();
 
-  const pool = getPool(loadEnv());
   const user = await findPortalUserByEmail(pool, email);
 
   // The hash is verified even when no user was found, so both paths take
