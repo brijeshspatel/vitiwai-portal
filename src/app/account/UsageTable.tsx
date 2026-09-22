@@ -31,53 +31,60 @@ export function UsageTable({ points }: { points: readonly UsagePoint[] }) {
 
   return (
     <div className="vw-card">
-      <table className="vw-table vw-usage">
-        <caption>
-          Water used each month, in kilolitres, with the amount charged. Most recent last.
-        </caption>
-        <thead>
-          <tr>
-            <th scope="col">Month</th>
-            <th scope="col">Used</th>
-            <th scope="col">Charged</th>
-          </tr>
-        </thead>
-        <tbody>
-          {points.map((point) => (
-            <tr key={point.month}>
-              <th scope="row">{formatMonth(point.month)}</th>
-              <td>
-                {/*
-                  The bar sits in its own track, and the figure beside it.
-
-                  The bar used to be a percentage of the whole cell, which it
-                  shared with this figure. The largest month is always scaled to
-                  100%, so its bar filled the cell and pushed the figure onto a
-                  second line - making that one row 66px tall against 42px for
-                  every other. Every customer has a largest month, so every
-                  dashboard had one malformed row, which reads as a fault in the
-                  billing figures.
-
-                  The bar is presentation only and carries no information this
-                  cell does not already state in words.
-                */}
-                <span className="vw-usage__cell">
-                  <span className="vw-usage__track" aria-hidden="true">
-                    <span
-                      className="vw-bar"
-                      style={{
-                        width: `${peak === 0 ? 0 : Math.round((point.kilolitres / peak) * 100)}%`,
-                      }}
-                    />
-                  </span>
-                  <span className="vw-usage__figure">{point.kilolitres} kL</span>
-                </span>
-              </td>
-              <td>{formatFJD(point.costMinor)}</td>
+      <div
+        className="vw-table-scroll"
+        role="region"
+        aria-label="Water use each month"
+        tabIndex={0}
+      >
+        <table className="vw-table vw-usage">
+          <caption>
+            Water used each month, in kilolitres, with the amount charged. Most recent last.
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Month</th>
+              <th scope="col">Used</th>
+              <th scope="col">Charged</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {points.map((point) => (
+              <tr key={point.month}>
+                <th scope="row">{formatMonth(point.month)}</th>
+                <td>
+                  {/*
+                    The bar sits in its own track, and the figure beside it.
+
+                    The bar used to be a percentage of the whole cell, which it
+                    shared with this figure. The largest month is always scaled to
+                    100%, so its bar filled the cell and pushed the figure onto a
+                    second line - making that one row 66px tall against 42px for
+                    every other. Every customer has a largest month, so every
+                    dashboard had one malformed row, which reads as a fault in the
+                    billing figures.
+
+                    The bar is presentation only and carries no information this
+                    cell does not already state in words.
+                  */}
+                  <span className="vw-usage__cell">
+                    <span className="vw-usage__track" aria-hidden="true">
+                      <span
+                        className="vw-bar"
+                        style={{
+                          width: `${peak === 0 ? 0 : Math.round((point.kilolitres / peak) * 100)}%`,
+                        }}
+                      />
+                    </span>
+                    <span className="vw-usage__figure">{point.kilolitres} kL</span>
+                  </span>
+                </td>
+                <td>{formatFJD(point.costMinor)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

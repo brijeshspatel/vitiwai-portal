@@ -310,6 +310,16 @@ a:hover {
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
 }
 
+/*
+ * The streaming fallback reserves height so the page does not jump when real
+ * content replaces it. Measured 2026-09-23: without this, /plans recorded a
+ * cumulative layout shift of 0.0933 against a budget of 0.1, from the single
+ * swap of a one-line card for a full page.
+ */
+.vw-loading {
+  min-height: 60vh;
+}
+
 .vw-price {
   font-size: 1.3rem;
   font-weight: 700;
@@ -352,6 +362,31 @@ a:hover {
 .vw-table {
   width: 100%;
   border-collapse: collapse;
+}
+
+/*
+ * A table wider than the viewport scrolls inside its own region rather than
+ * carrying the page sideways with it.
+ *
+ * The region is what scrolls, not the table: `display: block` on a `<table>`
+ * drops it from the accessibility tree as a table, and a screen reader then
+ * announces nine unrelated cells instead of three columns. The wrapper keeps
+ * the element a table and moves the overflow off the document.
+ *
+ * `tabindex="0"` is on the wrapper in the markup, because a region that
+ * scrolls must be scrollable from the keyboard - WCAG 2.1.1. It carries a
+ * role and a label there too, so it is announced rather than entered silently.
+ */
+.vw-table-scroll {
+  overflow-x: auto;
+  /* Room for the focus ring, which would otherwise be clipped by the scroll. */
+  padding: 2px;
+  margin: -2px;
+}
+
+.vw-table-scroll:focus-visible {
+  outline: 2px solid var(--vw-focus, currentColor);
+  outline-offset: 2px;
 }
 
 .vw-table th,
@@ -646,6 +681,18 @@ input[type='file'] {
   font-size: 16px;
   color: var(--vw-text);
   min-height: 44px;
+  /*
+   * A file input sizes itself to its button label plus the "no file chosen"
+   * text the browser supplies, and that intrinsic width does not shrink. At
+   * 320px it measured 294px inside a 254px card and pushed the whole page
+   * sideways - the only route that overflowed for this reason.
+   *
+   * `max-width: 100%` alone is not enough: the element is inline-block, so it
+   * needs a width to shrink from.
+   */
+  display: block;
+  width: 100%;
+  max-width: 100%;
 }
 
 fieldset {
