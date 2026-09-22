@@ -221,7 +221,7 @@ built.
 
 ### Changed
 
-- `standards.validation` is unchanged; `npm run migrate` joins `stack:up`.
+- The validation commands are unchanged; `npm run migrate` joins `stack:up`.
 - `DeclineReason` gains `name_mismatch`. The parent specification's rule table
   defined referral for a name similarity between 0.60 and 0.85 and said nothing
   below 0.60, which left a real case with no outcome.
@@ -271,8 +271,8 @@ stack, the application shell and the synthetic dataset.
 
 ### Changed
 
-- `standards.validation` now declares `npm run lint`, `npm run typecheck` and
-  `npm test`, so the workflow has a validation baseline to run.
+- `npm run lint`, `npm run typecheck` and `npm test` are declared as the
+  validation baseline, so a change has a fixed set of checks to pass.
 - `.gitignore` covers Node and Next.js build output and local environment files.
 
 ### Security
@@ -298,7 +298,6 @@ stack, the application shell and the synthetic dataset.
 ### Added
 
 - Greenfield repository baseline provisioned by `provision.py`.
-- AIA command layer and tooling installed at project scope under `.claude/`.
 - Markdown governance adopted, verified by the repository's own checker.
 - `VERSION` declared as the authoritative version source, paired with this
   changelog, per ADR 0005 D-7. Without both files the workflow's release step is

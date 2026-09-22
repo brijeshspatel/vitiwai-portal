@@ -1,6 +1,7 @@
 # Documentation
 
-Placement and naming are governed by `config/markdown-governance.policy.json`.
+Each folder below holds one kind of document. Filenames are lower case with
+hyphens, and a document stays in the folder that matches what it is.
 
 | Folder | Holds |
 |---|---|
