@@ -18,6 +18,16 @@ inferred from what previous releases happened to do.
 
 ## [Unreleased]
 
+### Changed
+
+- The three documents under `docs/` lose the version token from their filenames.
+  It was the same external convention the frontmatter came from, and it invited
+  a reader to think the number said something about the product. It did not -
+  the product version is in `VERSION`. Renamed with `git mv`, so
+  `git log --follow` still reaches the earlier history.
+- `README.md` links to those three documents instead of naming two of their
+  folders in prose. A reader was being pointed at a directory to browse.
+
 ## [0.7.0] - 2026-09-23
 
 ### Added
