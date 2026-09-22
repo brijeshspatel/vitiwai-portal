@@ -102,14 +102,26 @@ describe('plan discovery', () => {
     expect(result.value.items[0]?.monthlyPriceMinor).toBe(13900);
   });
 
-  it('answers a plan query inside the 200 ms target', async () => {
-    // The specification records 200 ms as a prediction to be reported against,
-    // not as a fact. This measures it and prints the figure either way.
+  it('answers a plan query with the matching plans', async () => {
+    // The elapsed time is measured and reported, and nothing asserts on it.
+    //
+    // It used to assert `elapsed < 200`, which failed on a loaded machine and
+    // passed on an idle one while the code was identical - so a red run meant
+    // "something else was running", which is not a defect anyone can fix. A
+    // wall-clock bound in a shared environment measures the environment.
+    //
+    // Timing that IS asserted lives in the browser project, against budgets
+    // taken from a page that painted, where the number means something.
     const started = performance.now();
     const result = await search.searchPlans({ text: 'broadband' });
     const elapsed = performance.now() - started;
     console.log(`[measured] plan query took ${elapsed.toFixed(1)} ms`);
+
     expect(isOk(result)).toBe(true);
-    expect(elapsed).toBeLessThan(200);
+    if (!isOk(result)) return;
+    expect(result.value.items.length).toBeGreaterThan(0);
+    expect(
+      result.value.items.every((p) => `${p.name} ${p.description ?? ''}`.toLowerCase().includes('broadband')),
+    ).toBe(true);
   });
 });
