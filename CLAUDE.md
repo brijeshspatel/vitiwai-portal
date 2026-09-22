@@ -124,5 +124,34 @@ not a style choice. Convert at the Odoo boundary with `fromOdooFloat`.
 wrong guesses: `eslint-config-next` exports an array rather than a factory, and
 the Meilisearch class is `Meilisearch`, not `MeiliSearch`.
 
+**Forcing a `details` open needs two rules, not one.** Older engines hide its
+contents with `display` on the children; Chrome 131 and later wrap them in
+`::details-content` with `content-visibility: hidden`, which a `display`
+override cannot reach. With only the first rule the navigation vanished from
+the header while remaining in the DOM with four links and a 271px box, and
+every automated test still passed. Found by looking at a screenshot.
+
+**jsdom has no layout engine, and that quietly limits three checks.** Element
+heights are all zero, so "every row is the same height" is satisfied by three
+zeros. `axe-core` returns `color-contrast` as *incomplete* and never runs
+`target-size` at all - the rule is absent from the result rather than reported
+as skipped. Assert these against the stylesheet or the tokens instead, and never
+read "zero violations" as covering them.
+
+**jsdom does not complete React's Suspense swap.** A streamed route sends slow
+content into `<div hidden id="S:0">` at the end of `body`, and a browser moves
+it. Nothing moves it in jsdom, so `/plans` appears to have no `h1` inside `main`.
+`tests/contract/portal.ts` does the move; it must match `P:` as well as `B:`,
+because postponed content uses the second prefix.
+
+**`textContent` concatenates across elements.** `<dt>Due</dt><dd>22 September
+2026</dd>` reads as `Due22 September 2026`, which defeats any word-boundary
+assertion. Walk text nodes and join them with a space.
+
+**Never probe a page mid-hydration.** A dashboard read during its ~200ms
+Suspense window reports `Loading...` and zero-height rows, which looks exactly
+like a stuck page and a broken layout. Two separate "defects" found this way
+were withdrawn after measuring; the page settles correctly.
+
 **Label every simulated capability in three places** - on screen, in the README,
 and in a comment on the adapter.

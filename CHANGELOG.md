@@ -12,6 +12,61 @@ all four.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-09-22
+
+Interface review. Every area of the portal was inspected against the running
+build and eleven defects were fixed, the layout gained a narrow state, and
+accessibility is now measured rather than asserted.
+
+### Fixed
+
+- **A dead link sat in the primary navigation on every page.** `Support`
+  pointed at `/support`, which returns 404 and has never existed. It was
+  added when the application shell was built and survived three increments
+  and four merges. A second entry one position earlier pointed at the real
+  `/account/support`, so the word appeared twice and one of them was broken.
+- **The navigation ignored the session.** A signed-in customer was offered
+  "Sign in" and could only sign out from a sentence on the dashboard.
+- **Form controls were unstyled everywhere except the plans filter.** The
+  account-opening form rendered as 21px-tall Arial-on-grey browser defaults
+  beside a themed 46px button. They are now 44px and 16px, which clears the
+  WCAG 2.2 target size and stops iOS Safari zooming the page on focus.
+- **Content links used the browser's colours** and turned visited-purple on
+  the dark theme, because nothing styled `a` outside the navigation.
+- **The usage table's peak row was half again as tall as the others.** The
+  bar was a percentage of the cell it shared with its own figure, so the
+  largest month - always 100% - wrapped its label to a second line. Every
+  customer has a largest month.
+- **Customers were shown storage formats**: `2026-09-22` as a due date and
+  `2026-07` as a usage month.
+- **The home page described the build, not the service**, under the heading
+  "Increment 1A", and told the customer which increments the remaining
+  workflows would arrive in - untrue since 0.4.0.
+- The dashboard printed the amount owed twice; page-header cards rendered
+  587px wide beside 1068px siblings.
+
+### Added
+
+- A 720px breakpoint, the stylesheet's first. Below it the navigation
+  collapses into a keyboard-operable `details` disclosure with no
+  JavaScript, grids stack to one column, and the usage bar's track is
+  dropped in favour of the figures.
+- `axe-core` across all eight routes at WCAG 2.2 A and AA, signed in and
+  signed out: zero violations.
+- Colour contrast computed from the design tokens in both themes, and
+  control sizes asserted against the stylesheet - because `axe-core` in
+  jsdom returns `color-contrast` as incomplete and never runs `target-size`
+  at all.
+- `src/domain/dates.ts`, so dates are formatted in one place.
+
+### Known limitations
+
+- Accessibility is measured in jsdom, which has no layout engine. Colour
+  contrast and target size are therefore checked separately and
+  deterministically rather than by axe. Nothing here replaces testing with
+  an actual screen reader.
+- CSRF tokens and rate limiting remain deferred to increment 1E.
+
 ### Fixed
 
 - **`npm run portal:free` did not free the port, and said it had.** It bound

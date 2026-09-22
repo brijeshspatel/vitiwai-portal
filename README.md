@@ -7,11 +7,12 @@ The portal moves five call-centre jobs online: opening an account, seeing what y
 bill, comparing plans, and reporting a fault. Odoo stays the system of record; the portal never
 becomes a second source of truth for anything Odoo already owns.
 
-**Increments 1A, 1B and 1C are delivered.** The container stack, the application shell, the
+**Increments 1A, 1B and 1C are delivered, and the interface has been reviewed.** The container stack, the application shell, the
 synthetic dataset, and the first customer workflow: opening an account with an identity document.
-All five workflows now work end to end: opening an account, seeing what you owe,
-paying it, comparing plans and reporting a fault. Increment 1E adds the accessibility,
-performance and security measurement.
+All five workflows work end to end: opening an account, seeing what you owe,
+paying it, comparing plans and reporting a fault. The layout has a narrow state for
+phones, and `axe-core` reports zero WCAG 2.2 AA violations on every route.
+Increment 1E adds performance measurement, CSRF tokens and rate limiting.
 
 ## What is real, and what is simulated
 
