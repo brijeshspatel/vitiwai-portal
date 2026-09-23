@@ -7,6 +7,7 @@ import { supportSchema, firstProblem } from '@/security/schemas';
 import { recordEvent } from '@/audit/record';
 import { getPool } from '@/db/client';
 import { loadEnv } from '@/config/env';
+import { requestOrigin } from '@/http/origin';
 
 /**
  * A fault report becomes an Odoo `project.task`.
@@ -17,7 +18,7 @@ import { loadEnv } from '@/config/env';
  * somebody else's account.
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const origin = request.nextUrl.origin;
+  const origin = requestOrigin(request);
   const user = await currentSession();
   if (user === null) return NextResponse.redirect(new URL('/signin', origin), 303);
 
