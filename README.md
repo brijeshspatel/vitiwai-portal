@@ -246,6 +246,41 @@ See [the architecture](docs/explanation/architecture/architecture.md) for how th
 [the integration contracts](docs/reference/integration-contracts.md) for what each port must honour,
 including the four Odoo call conventions every adapter has to get right.
 
+## Running it as a public demonstration
+
+`DEMO_MODE=true` builds a portal that reaches nothing outside itself. It is what
+the `Dockerfile` builds, and it exists because the full stack is eight
+containers - Odoo among them - which needs paid hosting to put on the internet.
+
+| | Default | `DEMO_MODE=true` |
+|---|---|---|
+| Customers, invoices, usage | Odoo | Generated in process, from `src/seed/generate.ts` |
+| Support cases and plan changes | Odoo | The portal's own database |
+| Plan search | Meilisearch | The generated catalogue, filtered in process |
+| Payments | The mock gateway container | The same decision, in process |
+| Identity documents | Uploaded and read by the OCR service | **Not accepted at all** |
+| Services needed | Eight containers | The portal and one Postgres |
+
+**The demonstration accepts no identity documents.** The form renders no upload
+field and the handler reads no file. Anyone can reach a public address, and a
+form asking for a passport will eventually be sent a real one; the only reliable
+way not to hold a document is never to read one. Applications are decided from
+the details typed into the form, and the identity rules still run against them.
+
+Every page carries a banner saying what the build is, and the sign-in page
+publishes the demonstration account. That credential guards nothing: everyone
+sees the same generated customer, and a password on synthetic data would only
+stop people seeing what they came to look at.
+
+```
+docker build -t vitiwai-portal:demo .
+docker run -p 3000:3000   -e DEMO_MODE=true   -e PORTAL_DATABASE_URL=postgres://user:password@host:5432/database   -e SESSION_SECRET="$(openssl rand -base64 32)"   vitiwai-portal:demo
+```
+
+The container migrates the database and creates the demonstration account before
+it serves. If either fails it does not start, which is better than failing one
+visitor at a time.
+
 ## Troubleshooting
 
 **[`screenshots/`](screenshots/) shows every area of the portal**, at

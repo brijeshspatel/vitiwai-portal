@@ -18,6 +18,28 @@ inferred from what previous releases happened to do.
 
 ## [Unreleased]
 
+### Added
+
+- `DEMO_MODE`, a build that reaches no external service: customers, invoices and
+  usage are generated in process, cases and plan changes go to the portal's own
+  database, plans are filtered in process and payments decide in process. Eight
+  containers become two.
+- **The demonstration accepts no identity documents.** The form renders no upload
+  field and the handler reads no file. A public address cannot stop a stranger
+  sending a real passport to a form that asks for one.
+- A banner on every page of a demonstration build, and the demonstration account
+  published on the sign-in page.
+- A `Dockerfile`. It migrates, creates the demonstration account, then serves.
+
+### Fixed
+
+- Every form built its redirect from the server's view of itself, so behind any
+  host a sign-in sent the browser to an address only reachable from inside the
+  container network. Redirects now use the address the visitor asked for.
+- Signing out redirected to a hardcoded `http://localhost:3000` unless
+  `PORTAL_BASE_URL` was set - on a deployed build, sending the visitor to their
+  own machine.
+
 ### Changed
 
 - The three documents under `docs/` lose the version token from their filenames.
