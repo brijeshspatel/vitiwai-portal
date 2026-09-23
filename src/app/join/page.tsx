@@ -2,6 +2,7 @@ import { JoinForm } from './JoinForm';
 import { Outcome, type OutcomeKind } from './Outcome';
 import { SimulatedNotice } from '@/components/SimulatedNotice';
 import { csrfToken } from '@/security/form';
+import { loadEnv } from '@/config/env';
 
 export const metadata = { title: 'Open an account' };
 
@@ -19,6 +20,7 @@ export default async function JoinPage({
   searchParams: Promise<{ outcome?: string; reasons?: string; error?: string }>;
 }) {
   const params = await searchParams;
+  const acceptsDocument = !loadEnv().DEMO_MODE;
   const outcome = OUTCOMES.find((k) => k === params.outcome);
 
   if (outcome) {
@@ -29,10 +31,15 @@ export default async function JoinPage({
   return (
     <>
       <SimulatedNotice what="identity verification">
-        This is a demonstration. Upload only the specimen documents this project generates. Never
-        upload a real identity document.
+        {acceptsDocument
+          ? 'This is a demonstration. Upload only the specimen documents this project generates. Never upload a real identity document.'
+          : 'This is a demonstration and it accepts no identity documents at all. Nothing you could attach would be read.'}
       </SimulatedNotice>
-      <JoinForm error={params.error} csrfToken={await csrfToken()} />
+      <JoinForm
+        error={params.error}
+        csrfToken={await csrfToken()}
+        acceptsDocument={acceptsDocument}
+      />
     </>
   );
 }

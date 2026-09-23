@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import Nav from './Nav';
 import './globals.css';
+import { DemonstrationBanner } from '@/components/DemonstrationBanner';
+import { loadEnv } from '@/config/env';
 
 export const metadata: Metadata = {
   title: {
@@ -21,6 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <a className="vw-skip-link" href="#main">
             Skip to main content
           </a>
+          {loadEnv().DEMO_MODE && <DemonstrationBanner />}
 
           <header className="vw-header">
             <div className="vw-header__inner">

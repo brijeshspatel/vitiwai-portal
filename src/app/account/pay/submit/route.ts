@@ -10,10 +10,11 @@ import type { TestInstrument } from '@/domain/types';
 import { rejectIfForged } from '@/security/require-csrf';
 import { paymentSchema } from '@/security/schemas';
 import { recordEvent } from '@/audit/record';
+import { requestOrigin } from '@/http/origin';
 
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const origin = request.nextUrl.origin;
+  const origin = requestOrigin(request);
   const user = await currentSession();
   if (user === null) return NextResponse.redirect(new URL('/signin', origin), 303);
 

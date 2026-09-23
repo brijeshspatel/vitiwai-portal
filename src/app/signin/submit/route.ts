@@ -10,6 +10,7 @@ import { rejectIfForged } from '@/security/require-csrf';
 import { firstProblem, signInSchema } from '@/security/schemas';
 import { clientAddress, consume, SIGNIN_BY_ADDRESS, SIGNIN_BY_EMAIL } from '@/security/ratelimit';
 import { recordEvent } from '@/audit/record';
+import { requestOrigin } from '@/http/origin';
 
 /**
  * A plain form post, so signing in works without JavaScript.
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // sender which field was malformed would distinguish a real address from
     // a missing one, which is the enumeration oracle SIGNIN_FAILED avoids.
     return NextResponse.redirect(
-      new URL(`/signin?error=${encodeURIComponent(SIGNIN_FAILED)}`, request.nextUrl.origin),
+      new URL(`/signin?error=${encodeURIComponent(SIGNIN_FAILED)}`, requestOrigin(request)),
       303,
     );
   }
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
   const next = candidate.data.next ?? '/account';
 
-  const origin = request.nextUrl.origin;
+  const origin = requestOrigin(request);
   const fail = () =>
     NextResponse.redirect(
       new URL(`/signin?error=${encodeURIComponent(SIGNIN_FAILED)}`, origin),

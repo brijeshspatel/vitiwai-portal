@@ -7,6 +7,7 @@ import { rejectIfForged } from '@/security/require-csrf';
 import { firstProblem, onboardingSchema } from '@/security/schemas';
 import { clientAddress, consume, UPLOAD_BY_ADDRESS } from '@/security/ratelimit';
 import { recordEvent } from '@/audit/record';
+import { requestOrigin } from '@/http/origin';
 
 /**
  * The onboarding form's handler.
@@ -23,7 +24,7 @@ import { recordEvent } from '@/audit/record';
  * refresh cannot resubmit an application.
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const origin = request.nextUrl.origin;
+  const origin = requestOrigin(request);
   const back = (params: Record<string, string>) =>
     NextResponse.redirect(
       new URL(`/join?${new URLSearchParams(params).toString()}`, origin),
@@ -51,12 +52,35 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   });
   if (!parsed.success) return back({ error: firstProblem(parsed.error) });
   const { fullName, dateOfBirth, documentNumber, email, password } = parsed.data;
-  const upload = form.get('document');
 
-  // A missing file is the applicant's mistake, not a fault. `validateUpload`
-  // rejects an empty one, but it cannot be reached without something to pass.
-  if (!(upload instanceof File) || upload.size === 0) {
-    return back({ error: 'Attach a photograph of your identity document.' });
+  /*
+   * A build that accepts no documents does not read one.
+   *
+   * It does not merely ignore what arrives: the form renders no file input, and
+   * this reads nothing from the request even if a field is posted by hand. That
+   * matters because the risk is not a malformed upload - it is a stranger
+   * sending a real passport to a public URL, and the only reliable way to not
+   * hold a document is to never read it.
+   *
+   * The rate-limit budget above is consumed either way. Removing it here would
+   * take the limiter off the one build that faces the public.
+   */
+  let document: { filename: string; mimeType: string; bytes: Uint8Array } | null = null;
+
+  if (!loadEnv().DEMO_MODE) {
+    const upload = form.get('document');
+
+    // A missing file is the applicant's mistake, not a fault. `validateUpload`
+    // rejects an empty one, but it cannot be reached without something to pass.
+    if (!(upload instanceof File) || upload.size === 0) {
+      return back({ error: 'Attach a photograph of your identity document.' });
+    }
+
+    document = {
+      filename: upload.name,
+      mimeType: upload.type,
+      bytes: new Uint8Array(await upload.arrayBuffer()),
+    };
   }
 
   const result = await applyForAccount(getServices(), getPool(loadEnv()), {
@@ -65,11 +89,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     documentNumber,
     email,
     password,
-    document: {
-      filename: upload.name,
-      mimeType: upload.type,
-      bytes: new Uint8Array(await upload.arrayBuffer()),
-    },
+    document,
   });
 
   await recordEvent(getPool(loadEnv()), {

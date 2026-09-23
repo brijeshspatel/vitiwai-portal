@@ -7,14 +7,32 @@ import { ACCEPTED_TYPES, MAX_UPLOAD_BYTES } from '@/domain/upload';
  * accepts and how large a file may be - before the upload is attempted rather
  * than as an error afterwards.
  */
-export function JoinForm({ error, csrfToken }: { error?: string; csrfToken?: string }) {
+export function JoinForm({
+  error,
+  csrfToken,
+  acceptsDocument = true,
+}: {
+  error?: string;
+  csrfToken?: string;
+  /**
+   * False in a build that accepts no identity document.
+   *
+   * The field is not rendered at all rather than disabled or hidden. A disabled
+   * input can be re-enabled from the console and a hidden one still posts, and
+   * neither would change the fact that the risk here is a real passport
+   * arriving at a public URL. The handler reads nothing either way; this is the
+   * half a person sees.
+   */
+  acceptsDocument?: boolean;
+}) {
   return (
     <form className="vw-card" method="post" encType="multipart/form-data" action="/join/submit">
         <input type="hidden" name="_csrf" value={csrfToken ?? ''} />
       <h1>Open an account</h1>
       <p className="vw-muted vw-prose">
-        Give your details exactly as they appear on your identity document, and upload a photograph
-        of it.
+        {acceptsDocument
+          ? 'Give your details exactly as they appear on your identity document, and upload a photograph of it.'
+          : 'Give your details exactly as they appear on your identity document.'}
       </p>
 
       {error !== undefined && (
@@ -53,23 +71,33 @@ export function JoinForm({ error, csrfToken }: { error?: string; csrfToken?: str
         <input id="password" name="password" type="password" required autoComplete="new-password" />
       </p>
 
-      <p>
-        <label htmlFor="document">Photograph of your identity document</label>
-        <br />
-        <input
-          id="document"
-          name="document"
-          type="file"
-          required
-          accept={ACCEPTED_TYPES.join(',')}
-          aria-describedby="document-help"
-        />
-        <br />
-        <span id="document-help" className="vw-muted">
-          PNG or JPEG, up to {MAX_UPLOAD_BYTES / (1024 * 1024)} MB. Your photograph is read and
-          then discarded; it is never stored.
-        </span>
-      </p>
+      {acceptsDocument ? (
+        <p>
+          <label htmlFor="document">Photograph of your identity document</label>
+          <br />
+          <input
+            id="document"
+            name="document"
+            type="file"
+            required
+            accept={ACCEPTED_TYPES.join(',')}
+            aria-describedby="document-help"
+          />
+          <br />
+          <span id="document-help" className="vw-muted">
+            PNG or JPEG, up to {MAX_UPLOAD_BYTES / (1024 * 1024)} MB. Your photograph is read and
+            then discarded; it is never stored.
+          </span>
+        </p>
+      ) : (
+        <p className="vw-muted vw-prose" role="note">
+          <strong>This demonstration does not accept identity documents.</strong> The portal
+          normally asks for a photograph of one and reads it. Anyone can reach this address, and a
+          public form asking for a passport will eventually be sent a real one - so this build
+          renders no upload field and reads no file. Your application is decided from the details
+          above.
+        </p>
+      )}
 
       <p>
         <button className="vw-button" type="submit">

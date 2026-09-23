@@ -7,6 +7,7 @@ import { changePlanSchema, firstProblem } from '@/security/schemas';
 import { recordEvent } from '@/audit/record';
 import { getPool } from '@/db/client';
 import { loadEnv } from '@/config/env';
+import { requestOrigin } from '@/http/origin';
 
 /**
  * A plan change becomes an Odoo `crm.lead`.
@@ -16,7 +17,7 @@ import { loadEnv } from '@/config/env';
  * customer comes from the session, never from the request.
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const origin = request.nextUrl.origin;
+  const origin = requestOrigin(request);
   const user = await currentSession();
   if (user === null) return NextResponse.redirect(new URL('/signin', origin), 303);
 

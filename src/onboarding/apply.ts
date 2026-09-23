@@ -3,7 +3,12 @@ import { validateUpload, type UploadError } from '@/domain/upload';
 import { recordApplication, createPortalUser } from '@/db/users';
 import type { Services } from '@/composition';
 import type pg from 'pg';
-import type { ClaimedIdentity, IdentityOutcome, UploadedFile } from '@/domain/types';
+import type {
+  ClaimedIdentity,
+  ExtractedDocument,
+  IdentityOutcome,
+  UploadedFile,
+} from '@/domain/types';
 
 /**
  * Workflow W1 - opening an account with an identity document.
@@ -19,7 +24,15 @@ export interface ApplicationInput {
   readonly documentNumber: string;
   readonly email: string;
   readonly password: string;
-  readonly document: UploadedFile;
+  /**
+   * The identity document, or `null` in a build that accepts none.
+   *
+   * A public demonstration renders no file input, because a URL anyone can
+   * reach cannot stop a stranger uploading a real passport to a form that asks
+   * for one. `null` is that build saying so, rather than an applicant having
+   * forgotten to attach something - the handler distinguishes the two.
+   */
+  readonly document: UploadedFile | null;
 }
 
 export type ApplicationResult =
@@ -34,34 +47,52 @@ export async function applyForAccount(
   pool: pg.Pool,
   input: ApplicationInput,
 ): Promise<ApplicationResult> {
-  // 1. The upload, before anything parses it.
-  const validated = validateUpload(input.document);
-  if (isErr(validated)) {
-    const error = validated.error as UploadError;
-    return { kind: 'rejected', field: 'document', message: error.message };
-  }
+  // 1 and 2, or neither: the upload, and reading it.
+  //
+  // With no document there is nothing to validate and nothing to read, so both
+  // steps are skipped and the details the applicant typed stand in for what a
+  // reader would have extracted. The identity rules still run against them, so
+  // the application still reaches a real decision rather than a rubber stamp -
+  // it is the *comparison* that is trivially satisfied, and the record below
+  // says so rather than implying a document was seen.
+  let extracted: ExtractedDocument;
 
-  // 2. Read it.
-  const read = await services.ocr.read(validated.value);
-  if (isErr(read)) {
-    if (read.error.kind === 'unavailable') {
-      return {
-        kind: 'unavailable',
-        message: 'the document reader is not responding. Try again shortly.',
-      };
+  if (input.document === null) {
+    extracted = {
+      rawText: 'No document: this build accepts none. Details as declared by the applicant.',
+      documentNumber: input.documentNumber,
+      fullName: input.fullName,
+      dateOfBirth: input.dateOfBirth,
+      confidence: 1,
+    };
+  } else {
+    const validated = validateUpload(input.document);
+    if (isErr(validated)) {
+      const error = validated.error as UploadError;
+      return { kind: 'rejected', field: 'document', message: error.message };
     }
-    // Unreadable or unsupported is an outcome for the applicant, not a fault.
-    const outcome: IdentityOutcome = { kind: 'declined', reasons: ['document_unreadable'] };
-    await recordApplication(pool, {
-      email: input.email,
-      outcome,
-      extractedText: null,
-      confidence: null,
-    });
-    return { kind: 'declined', reasons: [...outcome.reasons] };
-  }
 
-  const extracted = read.value;
+    const read = await services.ocr.read(validated.value);
+    if (isErr(read)) {
+      if (read.error.kind === 'unavailable') {
+        return {
+          kind: 'unavailable',
+          message: 'the document reader is not responding. Try again shortly.',
+        };
+      }
+      // Unreadable or unsupported is an outcome for the applicant, not a fault.
+      const outcome: IdentityOutcome = { kind: 'declined', reasons: ['document_unreadable'] };
+      await recordApplication(pool, {
+        email: input.email,
+        outcome,
+        extractedText: null,
+        confidence: null,
+      });
+      return { kind: 'declined', reasons: [...outcome.reasons] };
+    }
+
+    extracted = read.value;
+  }
 
   // 3. Decide.
   const claimed: ClaimedIdentity = {
