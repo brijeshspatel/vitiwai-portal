@@ -219,6 +219,20 @@ Every measurement is appended to `measurements.jsonl` at the repository root, wh
 git. It is written because a budget that passes at 41 KiB and one that passes at 199 KiB are the
 same green tick and very different facts.
 
+**The suite runs against either build.** By default it tests whatever is on
+`localhost:3000`. To test a demonstration container instead, point it at the
+container and at the database that container uses:
+
+```
+PORT_PORTAL=3100 PORTAL_DATABASE_URL="$DEMO_DATABASE_URL" DEMO_EMAIL=demo@vitiwai.example DEMO_PASSWORD=demo-passphrase npm run test:browser
+```
+
+It asks the running site which build it is rather than being told, so the
+journeys adapt on their own. This is worth doing: running it against a
+demonstration found a table overflowing at 320px that the local run had been
+passing for months, because that table renders only when the customer has
+reported something and the local account had not.
+
 **The payment journey consumes what it needs.** Paying the outstanding bill leaves nothing to pay,
 and `npm run seed` is idempotent so it issues no replacement. The test asserts both states and
 records which one it met; to exercise the submission again, point it at a customer who still owes

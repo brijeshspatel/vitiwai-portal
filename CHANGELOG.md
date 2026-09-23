@@ -30,9 +30,15 @@ inferred from what previous releases happened to do.
 - A banner on every page of a demonstration build, and the demonstration account
   published on the sign-in page.
 - A `Dockerfile`. It migrates, creates the demonstration account, then serves.
+- The browser suite runs against either build. It asks the running site which one
+  it is, so the journeys adapt without being told.
 
 ### Fixed
 
+- `/account/support` no longer scrolls sideways at 320px. Its reports table had
+  never been wrapped in the scroll region the usage table got, and the check had
+  been passing because that table renders only when the customer has reported
+  something.
 - Every form built its redirect from the server's view of itself, so behind any
   host a sign-in sent the browser to an address only reachable from inside the
   container network. Redirects now use the address the visitor asked for.
