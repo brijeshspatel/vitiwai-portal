@@ -56,6 +56,26 @@ export async function portalIsUp(): Promise<boolean> {
   }
 }
 
+/**
+ * Is the portal under test a demonstration build?
+ *
+ * Asked of the running site rather than read from this process's environment.
+ * The suite and the server are different processes and can be on different
+ * machines - a container, in the case this was written for - so the only
+ * reliable answer is the one the site gives. The banner is rendered by the
+ * layout on every page precisely when `DEMO_MODE` is on, which makes it the
+ * site's own statement about itself.
+ */
+let demoMode: boolean | undefined;
+
+export async function isDemoBuild(): Promise<boolean> {
+  if (demoMode === undefined) {
+    const html = await (await fetch(`${BASE}/`)).text();
+    demoMode = html.includes('vw-demo-banner');
+  }
+  return demoMode;
+}
+
 export async function requirePortal(): Promise<void> {
   if (!(await portalIsUp())) {
     throw new Error(
