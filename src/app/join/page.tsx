@@ -2,7 +2,7 @@ import { JoinForm } from './JoinForm';
 import { Outcome, type OutcomeKind } from './Outcome';
 import { SimulatedNotice } from '@/components/SimulatedNotice';
 import { csrfToken } from '@/security/form';
-import { loadEnv } from '@/config/env';
+import { isDemoMode } from '@/config/env';
 
 export const metadata = { title: 'Open an account' };
 
@@ -20,7 +20,7 @@ export default async function JoinPage({
   searchParams: Promise<{ outcome?: string; reasons?: string; error?: string }>;
 }) {
   const params = await searchParams;
-  const acceptsDocument = !loadEnv().DEMO_MODE;
+  const acceptsDocument = !isDemoMode();
   const outcome = OUTCOMES.find((k) => k === params.outcome);
 
   if (outcome) {

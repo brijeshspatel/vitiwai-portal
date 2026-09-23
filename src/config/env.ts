@@ -174,3 +174,20 @@ export function loadEnv(): Env {
   cached ??= parseEnv(process.env as Record<string, string | undefined>);
   return cached;
 }
+
+/**
+ * Is this a demonstration build? Read without validating everything else.
+ *
+ * `loadEnv()` parses the whole environment and throws if any of twenty-two
+ * variables is missing. That is right for anything that then goes on to use
+ * them, and wrong for a page that only needs to know whether to render a
+ * banner: calling it from the root layout made every prerendered page depend on
+ * Odoo's address being set, and the build failed anywhere a `.env` was absent.
+ * Continuous integration found it; a developer with a populated `.env` never
+ * would.
+ *
+ * One variable, read directly, with the same exact-string rule the schema uses.
+ */
+export function isDemoMode(): boolean {
+  return process.env.DEMO_MODE === 'true';
+}

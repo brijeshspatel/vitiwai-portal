@@ -1,6 +1,6 @@
 import { SignInForm } from './SignInForm';
 import { csrfToken } from '@/security/form';
-import { loadEnv } from '@/config/env';
+import { isDemoMode } from '@/config/env';
 
 export const metadata = { title: 'Sign in' };
 
@@ -10,11 +10,10 @@ export default async function SignInPage({
   searchParams: Promise<{ error?: string; next?: string }>;
 }) {
   const params = await searchParams;
-  const env = loadEnv();
-
+  
   return (
     <>
-      {env.DEMO_MODE && (
+      {isDemoMode() && (
         <div className="vw-card vw-prose" role="note">
           <h2>Signing in to the demonstration</h2>
           <p>
