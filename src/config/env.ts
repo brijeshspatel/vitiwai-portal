@@ -55,6 +55,23 @@ const schema = z.object({
   PORT_DOCGEN: port('PORT_DOCGEN'),
   PORT_MAILPIT_SMTP: port('PORT_MAILPIT_SMTP'),
   PORT_MAILPIT_WEB: port('PORT_MAILPIT_WEB'),
+  /**
+   * Is this build a public demonstration?
+   *
+   * It selects two things at once, and deliberately not as two flags: a
+   * composition whose adapters reach no external service, and an onboarding
+   * form that accepts no identity document. They are one decision - *this build
+   * faces the public* - and two flags would permit the combination nobody
+   * wants, a public build that still asks a stranger for a passport.
+   *
+   * Only the exact string `true` enables it. `z.coerce.boolean()` would read
+   * the string "false" as true, which is the wrong way round for a flag whose
+   * off state is the safe one.
+   */
+  DEMO_MODE: z
+    .string()
+    .optional()
+    .transform((v) => v === 'true'),
 });
 
 export type Env = z.infer<typeof schema>;
@@ -80,7 +97,49 @@ export const PORT_KEYS = [
   'PORT_MAILPIT_WEB',
 ] as const satisfies readonly (keyof Env)[];
 
+/**
+ * What a demonstration build uses for the services it does not have.
+ *
+ * `.invalid` is reserved by RFC 2606 and can never resolve, so these are not
+ * placeholders that might accidentally reach something - they are addresses
+ * guaranteed to fail. A demonstration adapter never dials them; if a future
+ * change dials one anyway, it fails immediately and visibly rather than
+ * finding whatever happens to be listening.
+ *
+ * The ports are equally unused: a container binds one port, given by the host.
+ */
+const DEMO_PLACEHOLDERS: Record<string, string> = {
+  ODOO_URL: 'http://odoo.invalid',
+  ODOO_DB: 'unused-in-demonstration',
+  ODOO_USER: 'unused-in-demonstration',
+  ODOO_PASSWORD: 'unused-in-demonstration',
+  MEILI_URL: 'http://meilisearch.invalid',
+  MEILI_MASTER_KEY: 'unused-in-demonstration',
+  GATEWAY_URL: 'http://gateway.invalid',
+  OCR_URL: 'http://ocr.invalid',
+  DOCGEN_URL: 'http://docgen.invalid',
+  SMTP_HOST: 'smtp.invalid',
+  SMTP_PORT: '25',
+  PORT_PORTAL: '3000',
+  PORT_ODOO: '8069',
+  PORT_PORTAL_DB: '15432',
+  PORT_ODOO_DB: '15433',
+  PORT_MEILI: '7700',
+  PORT_GATEWAY: '8091',
+  PORT_OCR: '8090',
+  PORT_DOCGEN: '8092',
+  PORT_MAILPIT_SMTP: '1025',
+  PORT_MAILPIT_WEB: '8025',
+};
+
 export function parseEnv(source: Record<string, string | undefined>): Env {
+  // A demonstration host supplies a database URL and a port and nothing else.
+  // Requiring it to invent an Odoo address for a build that never calls Odoo
+  // would make the flag harder to use than the thing it replaces.
+  if (source.DEMO_MODE === 'true') {
+    source = { ...DEMO_PLACEHOLDERS, ...stripEmpty(source) };
+  }
+
   const result = schema.safeParse(source);
   if (result.success) return result.data;
 
@@ -93,6 +152,19 @@ export function parseEnv(source: Record<string, string | undefined>): Env {
     })
     .join('; ');
   throw new Error(`the environment is not usable - ${detail}`);
+}
+
+/**
+ * Drops keys whose value is absent or empty.
+ *
+ * A host that declares a variable and leaves it blank would otherwise override
+ * a placeholder with an empty string, and the schema would reject it - which
+ * reads as "you must set ODOO_URL" on a build that has no Odoo.
+ */
+function stripEmpty(source: Record<string, string | undefined>): Record<string, string | undefined> {
+  return Object.fromEntries(
+    Object.entries(source).filter(([, v]) => v !== undefined && v !== ''),
+  );
 }
 
 let cached: Env | undefined;
