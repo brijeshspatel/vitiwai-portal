@@ -274,7 +274,11 @@ stop people seeing what they came to look at.
 
 ```
 docker build -t vitiwai-portal:demo .
-docker run -p 3000:3000   -e DEMO_MODE=true   -e PORTAL_DATABASE_URL=postgres://user:password@host:5432/database   -e SESSION_SECRET="$(openssl rand -base64 32)"   vitiwai-portal:demo
+docker run -p 3000:3000 \
+  -e DEMO_MODE=true \
+  -e PORTAL_DATABASE_URL="$DATABASE_URL" \
+  -e SESSION_SECRET="$(openssl rand -base64 32)" \
+  vitiwai-portal:demo
 ```
 
 The container migrates the database and creates the demonstration account before

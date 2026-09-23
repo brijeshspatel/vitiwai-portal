@@ -52,12 +52,37 @@ const ALLOWED = [
   { path: 'tests/unit/env.test.ts', rule: 'connection string with a password' },
 ];
 
+/**
+ * Single blobs allowed, by their own hash.
+ *
+ * Allowing a *path* exempts every future version of that file too, which is
+ * wrong for a file people edit often: README.md would stop being checked from
+ * then on. A blob hash names one exact set of bytes and nothing else, so the
+ * next version of the same file is scanned normally.
+ *
+ * Each entry records what was read and why it is harmless. An entry without
+ * that is an entry nobody can re-check.
+ */
+const ALLOWED_BLOBS = [
+  {
+    sha: '6e919318',
+    why:
+      'README.md, the deployment example. Read in full: ' +
+      'postgres://user:password@host:5432/database - the literal words "user", ' +
+      '"password" and "host". It reached history on 2026-09-23 and the example ' +
+      'was rewritten immediately afterwards to take the URL from a variable, so ' +
+      'no later version of the README matches this rule.',
+  },
+];
+
 function run(args) {
   return execFileSync('git', args, { encoding: 'utf8', maxBuffer: 512 * 1024 * 1024 });
 }
 
 const allowed = (path, rule) =>
   ALLOWED.some((a) => a.path === path && (a.rule === null || a.rule === rule));
+
+const allowedBlob = (sha) => ALLOWED_BLOBS.some((b) => sha.startsWith(b.sha));
 
 // Every blob ever committed, with the path it was committed at.
 const objects = run(['rev-list', '--objects', '--all'])
@@ -85,6 +110,7 @@ for (const { sha, path } of objects) {
     const match = rule.re.exec(content);
     if (!match) continue;
     if (allowed(path, rule.name)) continue;
+    if (allowedBlob(sha)) continue;
     findings.push({ rule: rule.name, path, sha: sha.slice(0, 8), sample: match[0].slice(0, 12) });
   }
 }
