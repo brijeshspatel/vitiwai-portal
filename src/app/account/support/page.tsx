@@ -79,25 +79,32 @@ export default async function SupportPage({
           <p className="vw-muted">You have not reported anything yet.</p>
         )}
         {cases.length > 0 && (
-          <table className="vw-table">
-            <caption>Faults you have reported, most recent first.</caption>
-            <thead>
-              <tr>
-                <th scope="col">What</th>
-                <th scope="col">Status</th>
-                <th scope="col">Reported</th>
-              </tr>
-            </thead>
-            <tbody>
-              {cases.map((supportCase) => (
-                <tr key={supportCase.id}>
-                  <th scope="row">{supportCase.title}</th>
-                  <td>{STATUS_LABEL[supportCase.status]}</td>
-                  <td>{formatDate(supportCase.createdAt)}</td>
+          <div
+            className="vw-table-scroll"
+            role="region"
+            aria-label="Faults you have reported"
+            tabIndex={0}
+          >
+            <table className="vw-table">
+              <caption>Faults you have reported, most recent first.</caption>
+              <thead>
+                <tr>
+                  <th scope="col">What</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Reported</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {cases.map((supportCase) => (
+                  <tr key={supportCase.id}>
+                    <th scope="row">{supportCase.title}</th>
+                    <td>{STATUS_LABEL[supportCase.status]}</td>
+                    <td>{formatDate(supportCase.createdAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </>
